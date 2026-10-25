@@ -1,0 +1,20 @@
+librelane exit code: 2
+                    Setup violations found in the following                     
+                    * max_ss_100C_1v60                                          
+                    * min_ss_100C_1v60                                          
+                    * nom_ss_100C_1v60                                          
+Run folder: runs/RUN_2026-10-25_07-51-18
+design__instance__count                       1896
+design__instance__count__stdcell              338
+design__die__area                             22500
+design__core__area                            17759.5
+route__wirelength                             2400
+timing__setup__ws                             -1.1538059723117031
+timing__setup__ws__corner:nom_tt_025C_1v80    1.5868000695887812
+timing__setup__ws__corner:nom_ss_100C_1v60    -1.1079217856738814
+timing__setup__ws__corner:nom_ff_n40C_1v95    2.6196845434413074
+timing__hold__ws                              0.1472778329867032
+route__drc_errors                             0
+magic__drc_error__count                       0
+klayout__drc_error__count                     0
+design__lvs_error__count                      0

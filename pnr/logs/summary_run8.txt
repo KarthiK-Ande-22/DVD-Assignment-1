@@ -1,0 +1,17 @@
+librelane exit code: 0
+[08:02:18] INFO     Flow complete.                             sequential.py:413
+Run folder: runs/RUN_2026-10-25_08-00-39
+design__instance__count                       1895
+design__instance__count__stdcell              334
+design__die__area                             22500
+design__core__area                            17759.5
+route__wirelength                             2362
+timing__setup__ws                             0.364375206987211
+timing__setup__ws__corner:nom_tt_025C_1v80    3.698732758097162
+timing__setup__ws__corner:nom_ss_100C_1v60    0.40610893575239093
+timing__setup__ws__corner:nom_ff_n40C_1v95    4.726382086151311
+timing__hold__ws                              0.14072285401932388
+route__drc_errors                             0
+magic__drc_error__count                       0
+klayout__drc_error__count                     0
+design__lvs_error__count                      0
