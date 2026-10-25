@@ -1,0 +1,10 @@
+# simulation binaries and waveforms
+sim
+gls
+*.vcd
+
+# LibreLane run directories
+pnr/runs/
+
+# obsolete IHP attempt
+old_ihp_invalid/
