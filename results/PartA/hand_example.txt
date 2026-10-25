@@ -1,0 +1,85 @@
+Part A - Task 5: Hand-worked example
+
+Choice of inputs:
+
+Roll number used : 2023102009 (Ande Karthik)
+A = last digit + 5 = 9 + 5 = 14
+B = 7
+
+In Binary:
+
+A=1110(14)
+B=0111(7)
+
+Expected product : 14 x 7 = 98     -> 
+P = 01100010
+
+
+1. Shift-and-add
+-------------------------------------------
+For every bit b_i of B, partial product pp_i = A AND b_i, shifted left by i places.
+
+              1 1 1 0     A  = 14
+            x 0 1 1 1     B  =  7
+      -----------------
+              1 1 1 0     pp0 = A AND b0 (b0 = 1)              = 14
+            1 1 1 0       pp1 = A AND b1 (b1 = 1), shifted 1   = 28
+          1 1 1 0         pp2 = A AND b2 (b2 = 1), shifted 2   = 56
+        0 0 0 0           pp3 = A AND b3 (b3 = 0), shifted 3   =  0
+      -----------------
+        0 1 1 0 0 0 1 0   P = 14 + 28 + 56 + 0 = 98
+
+
+2. The same multiplication inside the array (Section 2 table)
+--------------------------------------------------------------
+pp_i[j] = a[j] AND b[i].  Bits are written MSB first: [3] [2] [1] [0].
+Each full adder j in a row adds pp_i[j] + r_(i-1)[j] + carry c_i[j], with c_i[0] = 0.
+
+Row 0 (AND gates only)
+  pp0      = 1110
+  p[0]     = pp0[0]                        = 0
+  r0       = {0, pp0[3], pp0[2], pp0[1]}   = 0111   (7)
+
+Row 1 (4 full adders):  pp1 + r0 = 1110 + 0111
+  FA j :  pp1[j]  r0[j]  c1[j]  |  sum s1[j]  carry c1[j+1]
+   j=0 :    0       1      0    |      1          0
+   j=1 :    1       1      0    |      0          1
+   j=2 :    1       1      1    |      1          1
+   j=3 :    1       0      1    |      0          1
+  s1 = 0101, c1[4] = 1          (check: 14 + 7 = 21 = 1 0101)
+  p[1]     = s1[0]                          = 1
+  r1       = {c1[4], s1[3], s1[2], s1[1]}   = 1010   (10)
+
+Row 2 (4 full adders):  pp2 + r1 = 1110 + 1010
+  FA j :  pp2[j]  r1[j]  c2[j]  |  sum s2[j]  carry c2[j+1]
+   j=0 :    0       0      0    |      0          0
+   j=1 :    1       1      0    |      0          1
+   j=2 :    1       0      1    |      0          1
+   j=3 :    1       1      1    |      1          1
+  s2 = 1000, c2[4] = 1          (check: 14 + 10 = 24 = 1 1000)
+  p[2]     = s2[0]                          = 0
+  r2       = {c2[4], s2[3], s2[2], s2[1]}   = 1100   (12)
+
+Row 3 (4 full adders):  pp3 + r2 = 0000 + 1100
+  FA j :  pp3[j]  r2[j]  c3[j]  |  sum s3[j]  carry c3[j+1]
+   j=0 :    0       0      0    |      0          0
+   j=1 :    0       0      0    |      0          0
+   j=2 :    0       1      0    |      1          0
+   j=3 :    0       1      0    |      1          0
+  s3 = 1100, c3[4] = 0          (check: 0 + 12 = 12 = 0 1100)
+  p[3]     = s3[0]                          = 0
+  p[7:4]   = {c3[4], s3[3], s3[2], s3[1]}   = 0110
+
+Final product
+  p[7:4] p[3] p[2] p[1] p[0] = 0110 0 0 1 0 = 0110 0010 = 98   (matches 14 x 7)
+
+
+3. Where to find it in the waveform (mult.vcd)
+-----------------------------------------------
+The testbench applies vector number 14 x 16 + 7 = 231 at 30 + 20 x 231 ns.
+  4650 ns : a = 14, b = 7 applied (on the falling clock edge)
+  4655 ns : rising edge 1 - input registers capture a_reg = 14, b_reg = 7
+  4665 ns : rising edge 2 - output register captures p = 98
+Latency = 2 clock cycles: the product appears on the 2nd rising edge after the
+inputs are applied (edge 1 = 4655 ns registers the inputs, edge 2 = 4665 ns
+registers the product).

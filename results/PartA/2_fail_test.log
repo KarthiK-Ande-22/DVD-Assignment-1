@@ -1,0 +1,123 @@
+=== Injected bug (git diff rtl/full_adder.v) ===
+diff --git a/rtl/full_adder.v b/rtl/full_adder.v
+index 85ea8a6..f9750b5 100644
+--- a/rtl/full_adder.v
++++ b/rtl/full_adder.v
+@@ -7,7 +7,7 @@ module full_adder (
+ );
+ 
+     // Sum is the odd-parity result of the three full-adder inputs.
+-    assign sum  = a ^ b ^ cin;
++    assign sum  = a ^ b;
+     // Carry is asserted when at least two of the three inputs are high.
+     assign cout = (a & b) | (b & cin) | (a & cin);
+ 
+
+=== Simulation with the bug ===
+$ iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v
+$ vvp sim
+VCD info: dumpfile mult.vcd opened for output.
+Mismatch: a=3 b=3 expected=9 got=5
+Mismatch: a=3 b=6 expected=18 got=10
+Mismatch: a=3 b=7 expected=21 got=9
+Mismatch: a=3 b=11 expected=33 got=29
+Mismatch: a=3 b=12 expected=36 got=20
+Mismatch: a=3 b=13 expected=39 got=23
+Mismatch: a=3 b=14 expected=42 got=18
+Mismatch: a=3 b=15 expected=45 got=17
+Mismatch: a=5 b=5 expected=25 got=17
+Mismatch: a=5 b=7 expected=35 got=27
+Mismatch: a=5 b=10 expected=50 got=34
+Mismatch: a=5 b=11 expected=55 got=39
+Mismatch: a=5 b=13 expected=65 got=57
+Mismatch: a=5 b=14 expected=70 got=54
+Mismatch: a=5 b=15 expected=75 got=51
+Mismatch: a=6 b=3 expected=18 got=10
+Mismatch: a=6 b=6 expected=36 got=20
+Mismatch: a=6 b=7 expected=42 got=18
+Mismatch: a=6 b=11 expected=66 got=58
+Mismatch: a=6 b=12 expected=72 got=40
+Mismatch: a=6 b=13 expected=78 got=46
+Mismatch: a=6 b=14 expected=84 got=36
+Mismatch: a=6 b=15 expected=90 got=34
+Mismatch: a=7 b=3 expected=21 got=9
+Mismatch: a=7 b=5 expected=35 got=27
+Mismatch: a=7 b=6 expected=42 got=18
+Mismatch: a=7 b=7 expected=49 got=21
+Mismatch: a=7 b=10 expected=70 got=54
+Mismatch: a=7 b=11 expected=77 got=49
+Mismatch: a=7 b=12 expected=84 got=36
+Mismatch: a=7 b=13 expected=91 got=35
+Mismatch: a=7 b=14 expected=98 got=42
+Mismatch: a=7 b=15 expected=105 got=45
+Mismatch: a=9 b=9 expected=81 got=65
+Mismatch: a=9 b=11 expected=99 got=83
+Mismatch: a=9 b=13 expected=117 got=101
+Mismatch: a=9 b=15 expected=135 got=247
+Mismatch: a=10 b=5 expected=50 got=34
+Mismatch: a=10 b=7 expected=70 got=118
+Mismatch: a=10 b=10 expected=100 got=68
+Mismatch: a=10 b=11 expected=110 got=78
+Mismatch: a=10 b=13 expected=130 got=114
+Mismatch: a=10 b=14 expected=140 got=236
+Mismatch: a=10 b=15 expected=150 got=166
+Mismatch: a=11 b=3 expected=33 got=61
+Mismatch: a=11 b=5 expected=55 got=39
+Mismatch: a=11 b=6 expected=66 got=122
+Mismatch: a=11 b=7 expected=77 got=81
+Mismatch: a=11 b=9 expected=99 got=83
+Mismatch: a=11 b=10 expected=110 got=78
+Mismatch: a=11 b=11 expected=121 got=229
+Mismatch: a=11 b=12 expected=132 got=244
+Mismatch: a=11 b=13 expected=143 got=127
+Mismatch: a=11 b=14 expected=154 got=162
+Mismatch: a=11 b=15 expected=165 got=137
+Mismatch: a=12 b=3 expected=36 got=52
+Mismatch: a=12 b=6 expected=72 got=104
+Mismatch: a=12 b=7 expected=84 got=68
+Mismatch: a=12 b=11 expected=132 got=212
+Mismatch: a=12 b=12 expected=144 got=208
+Mismatch: a=12 b=13 expected=156 got=220
+Mismatch: a=12 b=14 expected=168 got=136
+Mismatch: a=12 b=15 expected=180 got=164
+Mismatch: a=13 b=3 expected=39 got=55
+Mismatch: a=13 b=5 expected=65 got=121
+Mismatch: a=13 b=6 expected=78 got=110
+Mismatch: a=13 b=7 expected=91 got=67
+Mismatch: a=13 b=9 expected=117 got=101
+Mismatch: a=13 b=10 expected=130 got=242
+Mismatch: a=13 b=11 expected=143 got=223
+Mismatch: a=13 b=12 expected=156 got=220
+Mismatch: a=13 b=13 expected=169 got=145
+Mismatch: a=13 b=14 expected=182 got=134
+Mismatch: a=13 b=15 expected=195 got=171
+Mismatch: a=14 b=3 expected=42 got=50
+Mismatch: a=14 b=5 expected=70 got=118
+Mismatch: a=14 b=6 expected=84 got=100
+Mismatch: a=14 b=7 expected=98 got=74
+Mismatch: a=14 b=10 expected=140 got=236
+Mismatch: a=14 b=11 expected=154 got=194
+Mismatch: a=14 b=12 expected=168 got=200
+Mismatch: a=14 b=13 expected=182 got=134
+Mismatch: a=14 b=14 expected=196 got=148
+Mismatch: a=14 b=15 expected=210 got=186
+Mismatch: a=15 b=3 expected=45 got=49
+Mismatch: a=15 b=5 expected=75 got=115
+Mismatch: a=15 b=6 expected=90 got=98
+Mismatch: a=15 b=7 expected=105 got=77
+Mismatch: a=15 b=9 expected=135 got=247
+Mismatch: a=15 b=10 expected=150 got=230
+Mismatch: a=15 b=11 expected=165 got=201
+Mismatch: a=15 b=12 expected=180 got=196
+Mismatch: a=15 b=13 expected=195 got=139
+Mismatch: a=15 b=14 expected=210 got=154
+Mismatch: a=15 b=15 expected=225 got=181
+FAIL: 256 vectors checked, 95 errors
+tb/tb_mult.v:73: $finish called at 5147000 (1ps)
+
+=== Reverted: git checkout rtl/full_adder.v ===
+git diff after revert (empty = restored):
+10:    assign sum  = a ^ b ^ cin;
+
+=== Simulation after revert ===
+PASS: 256 vectors checked, 0 errors

@@ -1,0 +1,7 @@
+$ iverilog -V | head -1
+Icarus Verilog version 14.0 (devel) (s20260301-579-g15d870a5-dirty)
+$ iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v
+$ vvp sim
+VCD info: dumpfile mult.vcd opened for output.
+PASS: 256 vectors checked, 0 errors
+tb/tb_mult.v:73: $finish called at 5147000 (1ps)
