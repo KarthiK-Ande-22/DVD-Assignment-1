@@ -14,7 +14,7 @@ if {![info exists ::env(PDK_ROOT)] || $::env(PDK_ROOT) eq ""} {
 }
 
 # Use the required SKY130 typical PVT corner: tt, 25 C, 1.80 V.
-set liberty_file $::env(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+set lib $::env(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
 
 # Use 10.00 ns for the first run; override it for the Tmin confirmation run.
 set clock_period 10.00
@@ -29,8 +29,8 @@ if {[info exists ::env(STA_REPORT)]} {
 }
 
 # Stop early with a clear message if a required input file is missing.
-if {![file exists $liberty_file]} {
-    error "Liberty file not found: $liberty_file"
+if {![file exists $lib]} {
+    error "Liberty file not found: $lib"
 }
 if {![file exists synth/mult_array_netlist.v]} {
     error "Netlist not found: synth/mult_array_netlist.v. Run Part B first."
@@ -39,7 +39,7 @@ if {![file exists synth/mult_array_netlist.v]} {
 # ---------- Required OpenSTA steps ------------------------------------------
 
 # STEP 1 - Load SKY130 cell delays and setup timing constraints.
-read_liberty $liberty_file
+read_liberty $lib
 
 # STEP 2 - Load the synthesized gate-level netlist and select its top module.
 read_verilog synth/mult_array_netlist.v
