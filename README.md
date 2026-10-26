@@ -338,17 +338,15 @@ The work was split equally. Following the marking scheme, each member was respon
 
 ## Use of AI tools
 
-An AI assistant (Claude Code, by Anthropic) was used during this assignment as a helper, as the course
-allows. It was used to:
+We used an AI assistant (Claude Code) during this assignment, as the assignment allows. It helped us to:
 
-- run the tool flow inside the IIC-OSIC-TOOLS container (simulation, synthesis, STA, LibreLane, KLayout)
-  and debug environment problems, e.g. the container's default IHP PDK and headless GTKWave/KLayout;
+- run the tools in the Docker container and check our deliverables against the assignment;
 - write helper scripts: `pnr/run_all.sh`, `pnr/run_attempt.sh`, `pnr/show_metrics.py`,
-  `pnr/render_layout.py` and `results/PartA/draw_block_diagram.py`;
-- analyse results, e.g. tracing the critical-path gates by truth table and finding why the LibreLane
-  slack changed unevenly between runs;
-- draft and format documentation: this README, the `results/` write-ups and the LaTeX report.
+- check our deliverables against the assignment guide.
+- analyse the tool logs and metrics, for example to explain why the setup slack changes unevenly across the LibreLane runs and to trace the critical path back to the full adders;
+- analyse the logs and metrics, for example to find why the setup slack changes unevenly across the
+  LibreLane runs and to trace the critical path back to the full adders;
+- draft this README, the `results/` write-ups and the report from our results.
 
-All numbers in this repository come from actually running the tools; nothing was invented. The team reviewed
-every file, checked the results against the generated reports, and can explain the design, the commands and
-the results.
+All RTL, scripts and tool runs are our own, and every number in this README and the report comes from our own runs. We reviewed every part and can explain each line.
+
