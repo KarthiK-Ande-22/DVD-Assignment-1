@@ -25,3 +25,10 @@ view.save_image_with_options("layout_whole_die.png", 1400, 1400, oversampling=0)
 # Screenshot 2: a 30 um x 30 um window showing standard-cell rows and metal wires.
 view.zoom_box(pya.DBox(60.0, 60.0, 90.0, 90.0))
 view.save_image_with_options("layout_zoom.png", 1400, 1400, oversampling=0)
+
+# Screenshot 3: a 16 um x 10 um window with only the top level drawn in full, so every
+# standard cell appears as a box labelled with its name (logic, decap, tap, fill, clkbuf).
+view.min_hier_levels = 0
+view.max_hier_levels = 1
+view.zoom_box(pya.DBox(60.0, 66.0, 76.0, 76.0))
+view.save_image_with_options("layout_zoom_cells.png", 1600, 1000, oversampling=0)
