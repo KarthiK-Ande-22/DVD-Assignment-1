@@ -117,9 +117,10 @@ Result: `FAIL: 256 vectors checked, 95 errors`
 -> `results/PartA/fail_line.txt`, full log (diff, all mismatches, revert, PASS) `results/PartA/2_fail_test.log`
 
 ### Block diagram
-`results/PartA/block_diagram.png` - bit-weight-aligned view: 16 AND gates, 12 full adders in 3
-ripple-carry rows, input registers `a_reg`/`b_reg` and output register `p` (drawn with Python matplotlib
-from the connections in `rtl/mult_array.v`).
+`results/PartA/block_diagram.png` - square-grid view of the array: input registers `a_reg`/`b_reg`,
+16 AND gates `pp_i[j]`, 12 full adders `FA[i,j]` in 3 ripple-carry rows, output register `p`; carries are
+drawn red and dashed. It is drawn from the connections in `rtl/mult_array.v`; the script refuses to save the
+image if any signal is left unconnected.
 
 ---
 
@@ -185,11 +186,13 @@ Logs and reports: `results/PartC/1_sta_T10ns.log`, `results/PartC/2_sta_Tmin_2.6
   (D = `fa33.sum`)
 - Cells in order: `dfrtp_1` -> `and2_0` -> `or3_1` -> `and4_1` -> `o2111a_1` -> `o21ai_0` -> `xnor3_1`
   -> `maj3_1` -> `xor3_1` -> `dfrtp_1` (10 cells: 2 flip-flops + 8 logic cells)
+- The role of every gate was found by simulating `synth/mult_array_netlist.v` for all 256 values of
+  (`a_reg`, `b_reg`) and matching each net's truth table with the RTL signals `pp_i[j]`, `s_i[j]`, `c_i[j]`.
 
 ### Task 3 - Full-adder cells vs 2N = 8
-7 of the 8 logic cells come from full-adder logic (`xnor3`, `maj3`, `xor3` plus 4 merged carry gates),
-close to the 2N = 8 estimate. Flattening and ABC merge AND gates and parts of several full adders into
-compound cells, so the match is approximate.
+The path passes through **6 full adders**, FA[1,1] -> FA[2,1] -> FA[2,2] -> FA[2,3] -> FA[3,2] -> FA[3,3],
+using 7 of the 8 logic cells (only `and2_0` is a plain AND gate), about 0.26 ns per cell. This agrees with
+the 2N = 8 estimate: each adder costs about one cell because the path uses either its carry or its sum.
 
 ### Results table
 
@@ -248,6 +251,13 @@ Every attempt (`setup__ws` = worst over all 9 signoff corners; the limiting corn
 Per-attempt configs and metrics: `results/PartD/attempts/` (`config_3p5ns.json` ... `metrics_7ns.json`);
 summary `pnr/attempts.md`.
 
+Why the slack changes unevenly: during placement LibreLane checks timing with *estimated* wire delays and
+the timing-repair step acts only if that estimate violates. From 3.5 to 6.0 ns the slow-corner estimate is
+negative, so repair adds the same 4 cells (3 `buf_4` re-buffers + 1 hold cell) and the final slack improves by
+0.5 ns per step. At 6.5 ns the estimate is already +0.435 ns, so nothing is added, but the routed wires are
+about 0.57 ns slower and the run fails (-0.136 ns). At 7.0 ns there is enough room and it passes (+0.364 ns).
+The synthesised logic (67 cells) is identical in all 8 runs.
+
 Copy the final results (run 8):
 ```bash
 cp runs/RUN_2026-10-25_08-00-39/final/metrics.json metrics.json
@@ -300,5 +310,45 @@ klayout -l $PDK_ROOT/sky130A/libs.tech/klayout/tech/sky130A.lyp mult_array.gds  
 
 ## Report
 
-`report/report.pdf`: results tables for Parts A-D, screenshots, block diagram, hand-worked example and
-answers to the six questions in Section 10.
+`report/report.pdf` (source `report/report.tex`): a 9-page, two-column report.
+
+| Section | Content |
+|---|---|
+| 1 Introduction | GitHub link, what each part checks and its result, tools used |
+| 2 Part A | full adder, how the array works, RTL implementation, block diagram, testbench, simulation and error test, hand-worked example, waveform |
+| 3 Part B | what synthesis does, `synth.tcl` steps, results table, full cell breakdown, gate-level simulation |
+| 4 Part C | STA basics, `sta.tcl` steps, Tmin/Fmax, results table, critical path with every gate's role, 2N comparison |
+| 5 Part D | flow stages, `config.json`, all 8 runs and why the slack changed, results table, 9 corners, Fmax vs Part C, added cells, layout |
+| 6 Answers | Q1-Q6 from Section 10 of the assignment |
+| 7 Individual Contributions | who did what |
+
+Rebuild (from `report/`, run twice so the references are correct):
+```bash
+cd report && pdflatex report.tex && pdflatex report.tex
+```
+
+## Individual contributions
+
+The work was split equally. Following the marking scheme, each member was responsible for 50 of the 100 marks.
+
+| Member | Parts | Work |
+|---|---|---|
+| Ande Karthik (2023102009) | A (30) + C (20) | RTL design and verification: full adder, array multiplier, exhaustive self-checking testbench, error-injection test, hand-worked example, waveform. Static timing analysis: `sta.tcl`, Tmin and Fmax, critical-path trace through the full-adder stages. Answered Q2 and Q6, kept the README command log, wrote and typeset the report. |
+| Kalluri Roshan Lal (2023102010) | B (20) + D (30) | Logic synthesis: `synth.tcl`, gate-level simulation, cell and area analysis. Physical design: `config.json`, the 8 LibreLane runs and their timing analysis, cells added by the flow, DRC/LVS signoff, layout screenshots. Drew the block diagram, answered Q1, Q3, Q4 and Q5, reviewed the report and cross-checked its results. |
+
+## Use of AI tools
+
+An AI assistant (Claude Code, by Anthropic) was used during this assignment as a helper, as the course
+allows. It was used to:
+
+- run the tool flow inside the IIC-OSIC-TOOLS container (simulation, synthesis, STA, LibreLane, KLayout)
+  and debug environment problems, e.g. the container's default IHP PDK and headless GTKWave/KLayout;
+- write helper scripts: `pnr/run_all.sh`, `pnr/run_attempt.sh`, `pnr/show_metrics.py`,
+  `pnr/render_layout.py` and `results/PartA/draw_block_diagram.py`;
+- analyse results, e.g. tracing the critical-path gates by truth table and finding why the LibreLane
+  slack changed unevenly between runs;
+- draft and format documentation: this README, the `results/` write-ups and the LaTeX report.
+
+All numbers in this repository come from actually running the tools; nothing was invented. The team reviewed
+every file, checked the results against the generated reports, and can explain the design, the commands and
+the results.

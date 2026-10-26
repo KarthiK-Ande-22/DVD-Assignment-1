@@ -1,85 +1,110 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass[10pt,a4paper,twocolumn]{article}
 
 \usepackage[T1]{fontenc}
-\usepackage[margin=2.3cm]{geometry}
+\usepackage{mathptmx}
+\usepackage[scaled=0.92]{helvet}
+\renewcommand{\ttdefault}{lmtt}
+\usepackage{microtype}
+\usepackage[top=1.7cm,bottom=1.7cm,left=1.5cm,right=1.5cm,columnsep=0.6cm,headsep=0.35cm]{geometry}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{array}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
-\usepackage{longtable}
 \usepackage{float}
-\usepackage{caption}
+\usepackage[font=small,labelfont=bf,skip=3pt]{caption}
+\usepackage{subcaption}
 \usepackage{amsmath}
 \usepackage{enumitem}
+\setlist{nosep,leftmargin=1.2em}
 \usepackage{listings}
 \usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{dblfloatfix}
+\usepackage{placeins}
 \usepackage[hyphens]{url}
 \usepackage[hidelinks]{hyperref}
 
+\titleformat{\section}{\large\sffamily\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\sffamily\bfseries}{\thesubsection}{0.5em}{}
+\titleformat{name=\subsection,numberless}{\normalsize\sffamily\bfseries}{}{0em}{}
+\titlespacing*{\section}{0pt}{8pt}{3pt}
+\titlespacing*{\subsection}{0pt}{6pt}{2pt}
+
 \graphicspath{{../results/PartA/}{../results/PartD/}}
 
-\lstset{basicstyle=\ttfamily\small, columns=fullflexible, keepspaces=true,
-        frame=single, breaklines=true, showstringspaces=false}
+\lstset{basicstyle=\ttfamily\scriptsize, columns=fullflexible, keepspaces=true,
+        frame=single, breaklines=true, showstringspaces=false, aboveskip=3pt, belowskip=3pt}
 
-\setlength{\parskip}{0.5em}
+\setlength{\parskip}{0.25em}
 \setlength{\parindent}{0pt}
-\renewcommand{\arraystretch}{1.15}
+\renewcommand{\arraystretch}{1.05}
+\setlength{\tabcolsep}{4pt}
+\setlength{\textfloatsep}{6pt plus 2pt}
+\setlength{\floatsep}{6pt plus 2pt}
+\setlength{\intextsep}{5pt plus 2pt}
+\setlength{\dbltextfloatsep}{6pt plus 2pt}
+\setlength{\dblfloatsep}{6pt plus 2pt}
+\setlength{\abovedisplayskip}{3pt}
+\setlength{\belowdisplayskip}{3pt}
 \newcommand{\um}{$\mu$m}
 \newcommand{\umsq}{$\mu$m$^2$}
 \newcommand{\cell}[1]{\texttt{#1}}
 
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{Digital VLSI Design -- Assignment 1}
-\fancyhead[R]{4-bit Array Multiplier: RTL to GDSII}
-\fancyfoot[C]{\thepage}
+\fancyhead[L]{\small Digital VLSI Design -- Assignment 1}
+\fancyhead[R]{\small 4-bit Array Multiplier: RTL to GDSII}
+\fancyfoot[C]{\small\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
-\setlength{\headheight}{14pt}
+\setlength{\headheight}{13pt}
 \setlength{\emergencystretch}{3em}
+\raggedbottom
+% let floats sit with text; stack float-only columns at the top instead of spreading them out
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.85}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.85}
+\setcounter{topnumber}{4}
+\setcounter{bottomnumber}{3}
+\setcounter{totalnumber}{6}
+\setcounter{dbltopnumber}{3}
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{8pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\setlength{\@dblfptop}{0pt}
+\setlength{\@dblfpsep}{8pt}
+\setlength{\@dblfpbot}{0pt plus 1fil}
+\makeatother
 
 \begin{document}
 
 % ------------------------------------------------------------------ title page
-\thispagestyle{empty}
+\twocolumn[{%
 \begin{center}
-\vspace*{5cm}
-{\LARGE\bfseries Digital VLSI Design\par}
-\vspace{0.4cm}
-{\Large Assignment 1\par}
-\vspace{1cm}
-{\Large 4-bit Unsigned Array Multiplier from RTL to GDSII\par}
-\vspace{0.3cm}
-{SkyWater SKY130 (\texttt{sky130\_fd\_sc\_hd}) \,|\, Icarus Verilog, Yosys, OpenSTA, LibreLane\par}
-\vspace{2cm}
-\begin{tabular}{ll}
-\toprule
-\textbf{Team member} & \textbf{Roll number} \\
-\midrule
-Ande Karthik & 2023102009 \\
-Kalluri Roshan Lal & 2023102010 \\
-\bottomrule
-\end{tabular}
-\end{center}
-\clearpage
-
-% ------------------------------------------------------------------ contents
-{\setlength{\parskip}{0pt}\small
-\tableofcontents}
-\clearpage
+{\Large\bfseries Digital VLSI Design -- Assignment 1\par}
+\vspace{2pt}
+{\large 4-bit Unsigned Array Multiplier from RTL to GDSII on SkyWater SKY130\par}
+\vspace{4pt}
+Ande Karthik (2023102009) \quad\textbullet\quad Kalluri Roshan Lal (2023102010)\par
+\vspace{2pt}
+{\small GitHub: \url{https://github.com/KarthiK-Ande-22/DVD-Assignment-1}\par}
+\vspace{6pt}
+\end{center}}]
 
 % ================================================================== 1
 \section{Introduction}
-
-\textbf{GitHub link:} \url{https://github.com/KarthiK-Ande-22/DVD-Assignment-1}
 
 We designed a registered 4-bit $\times$ 4-bit unsigned array multiplier (8-bit product, 2-cycle latency,
 one result per cycle) and took it from Verilog RTL to a GDSII layout on SkyWater SKY130 (\texttt{sky130\_fd\_sc\_hd})
 with open-source tools. Each part checks one aspect of the design:
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.2cm}Y}
+\begin{tabularx}{\columnwidth}{>{\raggedright\arraybackslash}p{2.7cm}Y}
 \toprule
 \textbf{Part} & \textbf{Result} \\
 \midrule
@@ -94,11 +119,11 @@ D. Physical design & 0 DRC, 0 LVS at a 7.0 ns clock; post-route $F_{max}$ = 150.
 
 The Part A testbench also verifies the Part B netlist, Part C analyses that netlist, and $1.2 \times T_{min}$
 from Part C sets the first clock period of Part D. Source files, reports, the GDSII and every command
-(\texttt{README.md}) are in the repository linked above. Table~\ref{tab:tools} lists the tools used.
+(\texttt{README.md}) are in the repository linked at the top. Table~\ref{tab:tools} lists the tools used.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
-\begin{tabularx}{\textwidth}{lY}
+\begin{tabularx}{\columnwidth}{lY}
 \toprule
 \textbf{Stage} & \textbf{Tool and version} \\
 \midrule
@@ -123,9 +148,11 @@ Environment & Ubuntu 24.04 host; IIC-OSIC-TOOLS Docker container for all parts
 \texttt{rtl/full\_adder.v} defines module \texttt{full\_adder} with inputs \texttt{a}, \texttt{b},
 \texttt{cin} and outputs \texttt{sum}, \texttt{cout}, written only with \texttt{assign} statements:
 \begin{align*}
-\texttt{sum}  &= a \oplus b \oplus cin && \text{(1 when an odd number of inputs are 1)}\\
-\texttt{cout} &= a\,b + b\,cin + a\,cin && \text{(majority: 1 when two or more inputs are 1)}
+\texttt{sum}  &= a \oplus b \oplus cin\\
+\texttt{cout} &= a\,b + b\,cin + a\,cin
 \end{align*}
+The sum is 1 when an odd number of inputs are 1 (XOR); the carry is the \emph{majority} function, 1 when two or
+more inputs are 1.
 
 \subsection{How the array multiplier works}
 
@@ -148,7 +175,7 @@ Instead of one large adder, the array accumulates the partial products one row a
         Row 3 has no row below it, so its remaining outputs form the upper half of the product, $p[7{:}4]$.
 \end{itemize}
 
-\begin{table}[H]
+\begin{table*}[!t]
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{clll}
@@ -162,7 +189,7 @@ Instead of one large adder, the array accumulates the partial products one row a
 \bottomrule
 \end{tabular}}
 \caption{Connections of the array ($j = 0 \ldots 3$; the first carry into each row is $c_i[0] = 0$).}\label{tab:conn}
-\end{table}
+\end{table*}
 
 \textbf{RTL implementation.} \texttt{rtl/mult\_array.v} has exactly the required ports:
 \begin{itemize}[nosep]
@@ -195,9 +222,9 @@ next operand pair. The structure is shown in Figure~\ref{fig:block}.
 
 \subsection{Block diagram}
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{block_diagram.png}
+\includegraphics[width=\columnwidth]{block_diagram.png}
 \caption{Block diagram of \texttt{mult\_array}: input registers \texttt{a\_reg}/\texttt{b\_reg} (8 flip-flops),
 16 AND gates $pp_i[j]$, 12 full adders FA[$i$,$j$] in three ripple-carry rows, and the output register \texttt{p}
 (8 flip-flops). Each row passes its upper sum bits diagonally into the next row and its final carry
@@ -239,8 +266,9 @@ To check that the testbench really catches errors (task 6), the sum in \texttt{f
 temporarily changed from \texttt{a \^{} b \^{} cin} to \texttt{a \^{} b} (carry-in ignored), simulated, and then
 restored with \texttt{git checkout rtl/full\_adder.v}:
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lll}
 \toprule
 \textbf{Run} & \textbf{RTL} & \textbf{Summary line} \\
@@ -249,7 +277,7 @@ restored with \texttt{git checkout rtl/full\_adder.v}:
 2 & bug injected: \texttt{sum = a \^{} b} & \texttt{FAIL: 256 vectors checked, 95 errors} \\
 3 & restored (\texttt{git diff} empty) & \texttt{PASS: 256 vectors checked, 0 errors} \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \caption{RTL simulation results and the error-injection test.}
 \end{table}
 
@@ -279,8 +307,9 @@ The expected product is $14 \times 7 = 98 = 0110\,0010_2$.
 
 The same product through the adder rows of Table~\ref{tab:conn} (bits written MSB first):
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{ccccl}
 \toprule
 \textbf{Row} & $pp_i$ & $r_{i-1}$ & $\{c_i[4], s_i\}$ & \textbf{Outputs} \\
@@ -290,7 +319,7 @@ The same product through the adder rows of Table~\ref{tab:conn} (bits written MS
 2 & 1110 & 1010 & 1\,1000 (14 + 10 = 24) & $p[2] = 0$, $r_2 = 1100$ \\
 3 & 0000 & 1100 & 0\,1100 (0 + 12 = 12) & $p[3] = 0$, $p[7{:}4] = 0110$ \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \caption{Row-by-row evaluation of $14 \times 7$ in the array.}
 \end{table}
 
@@ -306,7 +335,7 @@ This shows the 2-cycle latency directly: the operands are captured at the first 
 applied (4655 ns), and the product 98 appears on \texttt{p} one rising edge later (4665 ns), so a result is
 available two clock cycles after its inputs.
 
-\begin{figure}[H]
+\begin{figure*}[!t]
 \centering
 \includegraphics[width=\textwidth]{latency_marking.png}
 \caption{GTKWave view of \texttt{clk}, \texttt{rst\_n}, the input values (\texttt{a\_value} is the testbench
@@ -314,9 +343,8 @@ variable that drives \texttt{a}), \texttt{b} and \texttt{p} for $A = 14$, $B = 7
 4650 ns, captured into the input registers at rising edge 1 (4655 ns), and the product
 \texttt{0x62} = 98 appears on \texttt{p} at rising edge 2 (4665 ns): the latency is 2 clock cycles (20 ns).
 GTKWave shows \texttt{p} in hexadecimal (\texttt{0x54} = 84, \texttt{0x62} = 98, \texttt{0x70} = 112).}
-\end{figure}
+\end{figure*}
 
-\clearpage
 % ================================================================== 3
 \section{Part B: Logic Synthesis with Yosys}
 
@@ -329,9 +357,10 @@ it chooses the combination of library gates that implements the logic with good 
 \texttt{-flatten}, ABC sees the whole multiplier as one block instead of 12 separate full adders, so it can
 optimise across adder boundaries. Table~\ref{tab:synth} lists the steps of \texttt{synth/synth.tcl}.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
-\begin{tabularx}{\textwidth}{c>{\raggedright\arraybackslash}p{7.4cm}Y}
+\footnotesize
+\begin{tabularx}{\columnwidth}{c>{\raggedright\arraybackslash}p{4.3cm}Y}
 \toprule
 \textbf{Step} & \textbf{Command in \texttt{synth/synth.tcl}} & \textbf{Purpose} \\
 \midrule
@@ -358,18 +387,19 @@ cells for the adders' sums and carries, 6 AND and 19 NAND/NOR gates, 20 compound
 (such as \cell{a21oi} = $\overline{A_1A_2 + B_1}$), 3 isolation-type cells and 1 inverter
 (Table~\ref{tab:cells}).
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
-\begin{tabularx}{\textwidth}{lY}
+\footnotesize
+\begin{tabularx}{\columnwidth}{lY}
 \toprule
 \textbf{Metric} & \textbf{Value} \\
 \midrule
 Total number of cells & 73 \\
-Number of flip-flops & 16 (\cell{sky130\_fd\_sc\_hd\_\_dfrtp\_1}: D flip-flop with active-low asynchronous reset) \\
+Number of flip-flops & 16 (\cell{dfrtp\_1}) \\
 Total cell area (\umsq) & 805.77 \\
 Flip-flop area (\umsq) & 400.38 = 16 $\times$ 25.024 \\
 Flip-flop area (\% of total) & 49.69 \% \\
-The 3 most-used cell types and their counts & \cell{dfrtp\_1} $\times$ 16, \cell{nand2\_1} $\times$ 11, \cell{a21oi\_1} $\times$ 4 \\
+3 most-used cell types & \cell{dfrtp\_1} $\times$ 16, \cell{nand2\_1} $\times$ 11, \cell{a21oi\_1} $\times$ 4 \\
 Netlist simulation result & \texttt{PASS: 256 vectors checked, 0 errors} \\
 \bottomrule
 \end{tabularx}
@@ -378,10 +408,10 @@ Netlist simulation result & \texttt{PASS: 256 vectors checked, 0 errors} \\
 
 \subsection{Full cell breakdown}
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
-\small
-\begin{tabular}{>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{8.0cm}rr}
+\footnotesize
+\begin{tabular}{>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{3.75cm}rr}
 \toprule
 \textbf{Group} & \textbf{Cells (\texttt{sky130\_fd\_sc\_hd\_\_...})} & \textbf{Count} & \textbf{Area (\umsq)} \\
 \midrule
@@ -419,7 +449,6 @@ vvp gls
 \textbf{Result:} \texttt{PASS: 256 vectors checked, 0 errors}. The netlist gives the same product as the RTL
 for every input, so synthesis did not change the behaviour.
 
-\clearpage
 % ================================================================== 4
 \section{Part C: Static Timing Analysis with OpenSTA}
 
@@ -437,9 +466,10 @@ required time ($T - t_{setup}$) minus its arrival time: positive slack means the
 means it fails. The smallest slack in the design is the worst negative slack (WNS), and the path that has it
 is the \emph{critical path}. \texttt{sta/sta.tcl} runs the steps below.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
-\begin{tabularx}{\textwidth}{c>{\raggedright\arraybackslash}p{8.2cm}Y}
+\footnotesize
+\begin{tabularx}{\columnwidth}{c>{\raggedright\arraybackslash}p{4.6cm}Y}
 \toprule
 \textbf{Step} & \textbf{Command in \texttt{sta/sta.tcl}} & \textbf{Purpose} \\
 \midrule
@@ -475,9 +505,9 @@ value comes from rounding 2.596 ns up to 2.60 ns.
 
 \subsection{Part C results}
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
-\begin{tabularx}{\textwidth}{lY}
+\begin{tabularx}{\columnwidth}{lY}
 \toprule
 \textbf{Metric} & \textbf{Value} \\
 \midrule
@@ -497,7 +527,7 @@ Throughput (million results per second) & 385.21 (one result per clock cycle) \\
 
 \subsection{Critical path}
 
-\begin{table}[H]
+\begin{table*}[!t]
 \centering
 \small
 \resizebox{\textwidth}{!}{%
@@ -520,7 +550,7 @@ Throughput (million results per second) & 385.21 (one result per clock cycle) \\
 \caption{Critical path from \texttt{sta/mult\_array\_timing.rpt} ($T$ = 2.60 ns). Cell roles were found by simulating
 the netlist for all 256 values of (\texttt{a\_reg}, \texttt{b\_reg}) and matching each net's truth table with the
 RTL signals $pp_i[j]$, $s_i[j]$, $c_i[j]$ (a bar means the inverted signal).}\label{tab:critpath}
-\end{table}
+\end{table*}
 
 Data arrival = 2.460 ns; data required = 2.600 $-$ 0.135 = 2.465 ns; slack = +0.004 ns. At $T$ = 10 ns the same
 path has slack 9.865 $-$ 2.460 = +7.404 ns.
@@ -558,10 +588,10 @@ SKY130 PDK selected (\texttt{export PDK=sky130A STD\_CELL\_LIBRARY=sky130\_fd\_s
 \texttt{librelane config.json}), because the container's default PDK is IHP. Table~\ref{tab:stages} summarises
 the main stages.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
 \small
-\begin{tabularx}{\textwidth}{lY}
+\begin{tabularx}{\columnwidth}{lY}
 \toprule
 \textbf{Stage} & \textbf{What it does} \\
 \midrule
@@ -607,7 +637,7 @@ process/voltage/temperature conditions --- typical (tt, 1.80 V, 25 $^\circ$C), s
 and fast (ff, 1.95 V, $-40$ $^\circ$C) --- each with minimum, nominal and maximum wire RC. The chip must meet
 timing at all of them. Setup is hardest at the slow corner (slowest cells) and hold at the fast corner.
 
-\begin{table}[H]
+\begin{table*}[!t]
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{cccccccc}
@@ -628,7 +658,7 @@ timing at all of them. Setup is hardest at the slow corner (slowest cells) and h
 \caption{All LibreLane runs. Final setup slack is \texttt{setup\_\_ws}, the worst over the 9 corners (always the slow
 corner). Every run has 0 DRC and 0 LVS errors, and the typical corner passes in every run (+0.587 ns at 3.5 ns).
 Per-run configs and metrics are in \texttt{results/PartD/attempts/}.}\label{tab:runs}
-\end{table}
+\end{table*}
 
 \textbf{Why the slack changes unevenly.} During placement LibreLane checks timing with \emph{estimated} wire
 delays, and the timing-repair step only acts if that estimate shows a violation. The real wire delays are known
@@ -647,26 +677,24 @@ the repair step does:
 
 \subsection{Part D results}
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
-\begin{tabularx}{\textwidth}{lY}
+\begin{tabularx}{\columnwidth}{lY}
 \toprule
 \textbf{Metric} & \textbf{Value} \\
 \midrule
 CLOCK\_PERIOD used (ns) & 7.0 \\
-Number of runs needed & 8 (3.5 $\rightarrow$ 7.0 ns in 0.5 ns steps) \\
-Core area (\umsq) & 17759.5 (die area 22500 = 150 $\times$ 150 \um) \\
-Cells after synthesis (from Part B) & 73 (16 flip-flops + 57 logic cells) \\
-Cells after place and route & 1895 instances (334 excluding decap/fill) \\
-Kinds of cells added & buffers $\times$22: \cell{buf\_2} $\times$17 (I/O ports), \cell{clkdlybuf4s50\_1} $\times$2 (reset fanout),
-                       \cell{clkbuf\_16} $\times$3 (clock tree); tap $\times$245 (\cell{tapvpwrvgnd\_1}); decap $\times$1314
-                       (\cell{decap\_*}); fill $\times$247 (\cell{fill\_*}) \\
+Number of runs needed & 8 (3.5 $\rightarrow$ 7.0 ns) \\
+Core area (\umsq) & 17759.5 (die 22500) \\
+Cells after synthesis (Part B) & 73 (16 flip-flops + 57 logic) \\
+Cells after place and route & 1895 (334 without decap/fill) \\
+Kinds of cells added & buffers 22, tap 245, decap 1314, fill 247 (Table~\ref{tab:added}) \\
 Wirelength (\um) & 2362 (552 vias) \\
-Setup slack (ns) & +0.364 (worst corner \texttt{max\_ss\_100C\_1v60}) \\
-Post-route $F_{max}$ (MHz) & 150.70 = 1000 / (7.0 $-$ 0.364) \\
+Setup slack (ns) & +0.364 (slow corner) \\
+Post-route $F_{max}$ (MHz) & 150.70 = 1000/(7.0 $-$ 0.364) \\
 $F_{max}$ from Part C (MHz) & 385.21 \\
 DRC errors & 0 (Magic 0, KLayout 0, router 0) \\
-LVS errors & 0 (Netgen: circuits match uniquely) \\
+LVS errors & 0 (Netgen) \\
 \bottomrule
 \end{tabularx}
 \caption{Part D results table (final run, CLOCK\_PERIOD = 7.0 ns, from \texttt{pnr/metrics.json}).}
@@ -674,9 +702,9 @@ LVS errors & 0 (Netgen: circuits match uniquely) \\
 
 \subsection{Timing at every signoff corner}
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
-\resizebox{\textwidth}{!}{%
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{llrrr}
 \toprule
 \textbf{Corner (process, V, T)} & \textbf{Wire RC} & \textbf{Setup slack (ns)} & \textbf{Hold slack (ns)} & \textbf{Implied $F_{max}$ (MHz)} \\
@@ -721,7 +749,7 @@ Part C. Two effects combine:
         grows from 2.596 ns to 3.301 ns (Table~\ref{tab:fmaxbreak}).
 \end{enumerate}
 
-\begin{table}[H]
+\begin{table*}[!t]
 \centering
 \small
 \begin{tabular}{>{\raggedright\arraybackslash}p{5.0cm}cc>{\raggedright\arraybackslash}p{4.2cm}}
@@ -739,7 +767,9 @@ Library setup time & 0.135 & 0.124 & $-$0.011 \\
 \end{tabular}
 \caption{Where the extra delay comes from at the typical corner (post-route report of path
 \texttt{a\_reg[0]} $\rightarrow$ \texttt{p[6]}).}\label{tab:fmaxbreak}
-\end{table}
+\end{table*}
+
+
 
 \subsection{Cells added by place and route}
 
@@ -747,7 +777,7 @@ Part B synthesis gave \textbf{73 cells}; after place and route there are \textbf
 (\path{design__instance__count}), about 26 times more. The added cells were found by name in the
 LibreLane cell-frequency report:
 
-\begin{table}[H]
+\begin{table*}[!t]
 \centering
 \small
 \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}p{4.3cm}rY}
@@ -767,7 +797,9 @@ LibreLane cell-frequency report:
 \bottomrule
 \end{tabularx}
 \caption{Instance classes in the final layout.}\label{tab:added}
-\end{table}
+\end{table*}
+
+
 
 The logic part is 67 cells rather than Part B's 73 because LibreLane runs its own Yosys synthesis with a
 different script; $67 + 1828 = 1895$. Without decap and fill cells there are 334 standard-cell instances with
@@ -777,31 +809,34 @@ cells make up almost all of the instances.
 
 \subsection{Final layout}
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.8\textwidth]{layout_whole_die.png}
-\caption{Whole die (150 \um{} $\times$ 150 \um) in KLayout: I/O pins on the die edges, 47 standard-cell rows
-with the power grid, and the routed logic in the centre of the core.}
-\end{figure}
+Figure~\ref{fig:layout} shows the final GDSII in KLayout.
 
-\begin{figure}[H]
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=0.75\textwidth]{layout_zoom.png}
-\caption{Zoomed view (30 \um{} $\times$ 30 \um): standard-cell rows bounded by the horizontal power rails, with
-routed metal-1/metal-2 wires and vias connecting the cell pins.}
-\end{figure}
+\begin{subfigure}[t]{0.31\textwidth}\centering
+\includegraphics[width=\linewidth]{layout_whole_die.png}
+\caption{Whole 150 \um{} $\times$ 150 \um{} die: I/O pins on the edges, 47 cell rows with the power grid,
+routed logic in the centre.}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.31\textwidth}\centering
+\includegraphics[width=\linewidth]{layout_zoom.png}
+\caption{30 \um{} $\times$ 30 \um{} zoom: cell rows bounded by the power rails, metal-1/metal-2 wires and vias.}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.33\textwidth}\centering
+\includegraphics[width=\linewidth]{layout_zoom_cells.png}
+\caption{16 \um{} $\times$ 10 \um{} zoom with every cell labelled: logic (\cell{maj3}, \cell{xor2}, \cell{nand2})
+next to \cell{decap\_12}, \cell{tapvpwrvgnd\_1}, \cell{fill\_1} and \cell{clkbuf\_16}.}
+\end{subfigure}
+\caption{Final layout of \texttt{mult\_array} in KLayout.}\label{fig:layout}
+\end{figure*}
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{layout_zoom_cells.png}
-\caption{Deeper zoom (16 \um{} $\times$ 10 \um) with every standard cell drawn as a labelled box: logic cells
-(\cell{maj3\_1}, \cell{xor2\_1}, \cell{nand2\_1}, \cell{inv\_1}) next to cells added by the flow
-(\cell{decap\_12}, \cell{tapvpwrvgnd\_1}, \cell{fill\_1}, \cell{clkbuf\_16}), the power rails between rows
-and the routed wires.}
-\end{figure}
 
-\clearpage
+
 % ================================================================== 6
+% flush every Part A-D table and figure first, so the Q&A section reads on its own
+\clearpage
+% reset the column height (LaTeX otherwise keeps space reserved for the wide floats already printed)
+\makeatletter\global\@colht\textheight\global\@colroom\textheight\global\vsize\textheight\makeatother
 \section{Answers to the Report Questions}
 
 \subsection*{Q1. The array needs 16 AND gates and 12 full adders. How many cells did synthesis produce for the logic? Explain why the number of cells is not simply 16 + 12.}
@@ -920,6 +955,7 @@ in Netgen (``Circuits match uniquely'') and 0 antenna violations.
 
 \begin{table}[H]
 \centering
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{llccc}
 \toprule
 \textbf{Quantity} & \textbf{Formula} & \textbf{N = 4 (ours)} & \textbf{N = 8 (estimate)} & \textbf{Change} \\
@@ -929,7 +965,7 @@ Full adders & $N(N-1)$ & 12 & 56 & $\times 4.67$ \\
 Flip-flops & $4N$ & 16 & 32 & $\times 2$ \\
 Critical path & $\approx 2N$ full-adder delays & 8 & 16 & $\times 2$ \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \caption{Scaling from 4 to 8 bits.}
 \end{table}
 
@@ -937,8 +973,8 @@ Critical path & $\approx 2N$ full-adder delays & 8 & 16 & $\times 2$ \\
 0.395 ns (CLK$\rightarrow$Q) + 0.135 ns (setup) = 0.530 ns. The logic delay grows with the path length ($2N$),
 so it doubles from 4 to 8 bits, while the flip-flop overhead stays the same:
 \begin{align*}
-T_{min}(8\text{-bit}) &\approx 0.530 + 2 \times 2.065 = 4.66 \text{ ns}, \qquad
-F_{max}(8\text{-bit}) \approx 1000 / 4.66 \approx 215 \text{ MHz}.
+T_{min}(8\text{-bit}) &\approx 0.530 + 2 \times 2.065 = 4.66 \text{ ns},\\
+F_{max}(8\text{-bit}) &\approx 1000 / 4.66 \approx 215 \text{ MHz}.
 \end{align*}
 As a cross-check with our measured path: for $N = 4$ it crosses 6 full adders ($2N - 2$), about 0.344 ns each.
 The same pattern gives 14 adders for $N = 8$, so $T_{min} \approx 0.530 + 14 \times 0.344 = 5.35$ ns
