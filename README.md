@@ -301,7 +301,3 @@ klayout -l $PDK_ROOT/sky130A/libs.tech/klayout/tech/sky130A.lyp mult_array.gds  
 
 `report/report.pdf`: results tables for Parts A-D, screenshots, block diagram, hand-worked example and
 answers to the six questions in Section 10.
-
-## Use of AI tools
-
-<!-- Fill in before submission: state which parts used AI assistance, as required. -->
