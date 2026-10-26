@@ -11,3 +11,9 @@ old_ihp_invalid/
 
 # full LibreLane run logs (results are summarised in pnr/attempts.md)
 pnr/logs/*.log
+
+# LaTeX build files
+report/*.aux
+report/*.log
+report/*.toc
+report/*.out
