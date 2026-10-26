@@ -42,8 +42,12 @@ klayout mult_array.gds                                  # screenshots
 
 - LibreLane signs off setup timing at 9 PVT corners; `setup__ws` is the worst of them, always the slow
   corner `ss_100C_1v60` (1.60 V, 100 C). The typical corner used in Part C passed in every run.
-- Runs 6 and 7 gained almost nothing from the extra 0.5 ns: the synthesized netlist was identical in all
-  8 runs, so the change came from place-and-route timing repair choosing a different critical path.
+- Why the slack changes unevenly: during placement the flow checks timing with estimated wire delays, and the
+  timing-repair step acts only if that estimate violates. From 3.5 to 6.0 ns the slow-corner estimate is negative,
+  so repair adds the same 4 cells every run (3 `buf_4` re-buffers + 1 `dlygate4sd3_1` hold cell). At 6.5 ns the
+  estimate is +0.435 ns, so repair adds nothing, but the real routed wires are about 0.57 ns slower, giving
+  -0.136 ns. At 7.0 ns the estimate (+0.935 ns) leaves enough room and the run passes (+0.364 ns).
+  The synthesised logic (67 cells) is identical in all 8 runs.
 - DRC, LVS and hold were clean in every run; only setup timing failed.
 - Per-attempt files are in `attempts/`: `config_<period>.json` (the 6 config keys used for that run, taken
   from the run's `resolved.json`) and `metrics_<period>.json` (that run's `final/metrics.json`), e.g.
@@ -109,7 +113,7 @@ Cells added, found by name in the cell report (LibreLane step `53-odb-cellfreque
 
 | Name contains | Cells in the report | Count | Added by |
 |---|---|---:|---|
-| `buf` | `buf_2` x17, `clkdlybuf4s50_1` x2, `clkbuf_16` x3 | 22 | timing repair (19) + clock-tree synthesis (3) |
+| `buf` | `buf_2` x17, `clkdlybuf4s50_1` x2, `clkbuf_16` x3 | 22 | I/O port buffers (17) + reset-fanout buffers (2) + clock-tree synthesis (3) |
 | `tap` | `tapvpwrvgnd_1` x245 | 245 | tap insertion (floorplan) |
 | `decap` | `decap_3` x130, `decap_4` x49, `decap_6` x175, `decap_8` x55, `decap_12` x905 | 1314 | fill insertion |
 | `fill` | `fill_1` x215, `fill_2` x32 | 247 | fill insertion |
@@ -119,9 +123,11 @@ Cells added, found by name in the cell report (LibreLane step `53-odb-cellfreque
 
 Why each kind is needed:
 
-- **`buf`** - `clkbuf_16`: clock-tree synthesis adds them so the clock reaches all 16 flip-flops at nearly
-  the same time (low skew). `buf_2` / `clkdlybuf`: timing repair adds them to drive long wires and fix slew,
-  setup and hold.
+- **`buf`** - `buf_2` x17 (`input1`-`input9`, `output10`-`output17`): one buffer on each of the 9 input pins
+  (`rst_n`, `a`, `b`) and 8 output pins (`p`), isolating the core from external drivers and loads.
+  `clkdlybuf4s50_1` x2 (`fanout18`, `fanout19`): split the reset net, which drives all 16 flip-flops,
+  into two branches (10 + 6) to meet slew and load limits. `clkbuf_16` x3: clock-tree synthesis, so the
+  clock reaches all 16 flip-flops at nearly the same time (low skew).
 - **`tap`** (`tapvpwrvgnd`) - tie the n-well to VPWR and the substrate to VGND at regular spacing to prevent
   latch-up.
 - **`decap`** - decoupling capacitors between VPWR and VGND that reduce supply noise / IR drop.

@@ -38,8 +38,11 @@ librelane config.json
 
 LibreLane signs off setup timing at 9 PVT corners. `setup__ws` is the worst of them, which is always the
 slow corner `ss_100C_1v60` (1.60 V, 100 C). The typical corner used in Part C passed in every run.
-Runs 6 and 7 gained almost nothing from the extra 0.5 ns because place-and-route timing repair changed
-the critical path (the synthesized netlist was identical in all 8 runs).
+Runs 6 and 7 gained almost nothing from the extra 0.5 ns. During placement the flow checks timing with
+estimated wire delays and only repairs paths that violate that estimate. Up to 6.0 ns the slow-corner estimate
+is negative, so repair adds 3 `buf_4` re-buffers and 1 hold cell; at 6.5 ns the estimate is positive (+0.435 ns),
+so nothing is added, but the routed wires are about 0.57 ns slower and the run fails. The synthesized netlist was
+identical in all 8 runs. See `results/PartD/part_d_results.md`.
 
 ## Part D results table (completed)
 
@@ -75,7 +78,7 @@ Two effects combine:
 |---|---|
 | Logic cells (48 multi-input + 3 inverters) | 51 |
 | Flip-flops (`dfrtp_1`) | 16 |
-| Buffers: timing repair (`buf_2` x17, `clkdlybuf4s50_1` x2) + clock tree (`clkbuf_16` x3) | 22 |
+| Buffers: I/O ports (`buf_2` x17), reset fanout (`clkdlybuf4s50_1` x2), clock tree (`clkbuf_16` x3) | 22 |
 | Tap cells (`tapvpwrvgnd_1`) | 245 |
 | Decap cells (`decap_*`) | 1,314 |
 | Fill cells (`fill_*`) | 247 |

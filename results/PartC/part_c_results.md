@@ -51,25 +51,26 @@ Throughput = Fmax     = 385.21 million results per second (one result per clock 
 
 Cells in order (from `sta/mult_array_timing.rpt`; roles traced in `synth/mult_array_netlist.v`):
 
-| # | Instance | Cell | Delay (ns) | Arrival (ns) | Role in the RTL |
-|---|---|---|---|---|---|
-| 1 | `_118_` | `dfrtp_1` | 0.395 | 0.395 | launch flip-flop, Q = b_reg[0] |
-| 2 | `_083_` | `and2_0` | 0.212 | 0.607 | AND gate pp0[0] = a_reg[0] & b_reg[0] |
-| 3 | `_055_` | `or3_1` | 0.361 | 0.968 | row-1 carry logic (merged) |
-| 4 | `_059_` | `and4_1` | 0.215 | 1.183 | row-1 carry logic merged with an a_reg[1] AND |
-| 5 | `_070_` | `o2111a_1` | 0.234 | 1.417 | carry logic merged with pp2[2] = a_reg[2] & b_reg[2] |
-| 6 | `_076_` | `o21ai_0` | 0.216 | 1.634 | carry-chain logic |
-| 7 | `_090_` | `xnor3_1` | 0.274 | 1.907 | full-adder sum function |
-| 8 | `_091_` | `maj3_1` | 0.375 | 2.282 | full-adder carry function |
-| 9 | `_092_` | `xor3_1` | 0.178 | 2.460 | full-adder sum of FA[3,3] (s3[3]) |
-| 10 | `_112_` | `dfrtp_1` | setup 0.135 | - | capture flip-flop, Q = p[6] |
+| # | Instance | Cell | Delay (ns) | Arrival (ns) | Output equals | Role in the multiplier |
+|---|---|---|---|---|---|---|
+| 1 | `_118_` | `dfrtp_1` | 0.395 | 0.395 | b_reg[0] | launch flip-flop (input register) |
+| 2 | `_083_` | `and2_0` | 0.212 | 0.607 | pp0[0] | AND gate a0*b0, reused in the row-1 carry logic |
+| 3 | `_055_` | `or3_1` | 0.361 | 0.968 | ~c1[2] + pp0[0] | part of the carry of FA[1,1] |
+| 4 | `_059_` | `and4_1` | 0.215 | 1.183 | pp2[1] * c2[1] | carry term of FA[2,1] |
+| 5 | `_070_` | `o2111a_1` | 0.234 | 1.417 | pp2[2] * c2[2] | carry term of FA[2,2] |
+| 6 | `_076_` | `o21ai_0` | 0.216 | 1.634 | ~c2[3] | carry out of FA[2,2] (inverted) |
+| 7 | `_090_` | `xnor3_1` | 0.274 | 1.907 | ~s2[3] | sum of FA[2,3] (inverted) |
+| 8 | `_091_` | `maj3_1` | 0.375 | 2.282 | ~c3[3] | carry out of FA[3,2] (inverted) |
+| 9 | `_092_` | `xor3_1` | 0.178 | 2.460 | s3[3] | sum of FA[3,3] -> p[6] |
+| 10 | `_112_` | `dfrtp_1` | setup 0.135 | - | p[6] | capture flip-flop |
+
+Roles were found by simulating `synth/mult_array_netlist.v` for all 256 values of (a_reg, b_reg) and matching
+each net's truth table with the RTL signals pp_i[j], s_i[j], c_i[j] (`~` = inverted).
 
 ## Task 3 - Full-adder cells vs the 2N = 8 estimate
 
-- 8 logic cells are on the path; **7 of them come from full-adder logic**:
-  3 pure full-adder functions (`xnor3` sum, `maj3` carry, `xor3` sum of FA[3,3]) and
-  4 compound gates (`or3`, `and4`, `o2111a`, `o21ai`) that implement the ripple-carry logic
-  merged with partial-product AND gates. Only `_083_` is a plain AND gate.
+- 8 logic cells are on the path. The path passes through **6 full adders**,
+  FA[1,1] -> FA[2,1] -> FA[2,2] -> FA[2,3] -> FA[3,2] -> FA[3,3], using 7 cells; only `_083_` is a plain AND gate.
 - This is close to the estimate of about **2N = 8 full-adder delays**. The match is approximate because
   `synth -flatten` removes the `full_adder` boundaries and ABC folds AND gates and parts of several
   full adders into single compound cells, while a 3-input `xor3`/`maj3` replaces the two-level

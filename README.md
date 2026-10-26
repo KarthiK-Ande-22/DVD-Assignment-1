@@ -280,7 +280,8 @@ the slow signoff corner costs about 2x (the same layout gives 302.9 MHz at the t
 wire RC, clock uncertainty (0.25 ns), clock skew and slower clk -> Q add 0.705 ns even at the same corner.
 
 ### Task 4 - Cells added by place and route
-73 cells after synthesis -> 1895 after place and route. Added: `buf` 22 (timing repair + clock tree),
+73 cells after synthesis -> 1895 after place and route. Added: `buf` 22 (17 I/O port buffers,
+2 reset-fanout buffers, 3 clock-tree buffers),
 `tap` 245, `decap` 1314, `fill` 247 (from the LibreLane cell-frequency report).
 
 ### Task 5 - Layout screenshots

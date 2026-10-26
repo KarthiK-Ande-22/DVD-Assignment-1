@@ -69,15 +69,32 @@ Kalluri Roshan Lal & 2023102010 \\
 \clearpage
 
 % ================================================================== 1
-\section{Overview and Environment}
+\section{Introduction}
 
-We designed a 4-bit $\times$ 4-bit unsigned array multiplier in Verilog, verified it with an exhaustive
-self-checking testbench, synthesised it to SKY130 standard cells with Yosys, analysed its timing with
-OpenSTA, and took it through place and route to a GDSII layout with LibreLane. The design registers its
-inputs and its output, so every internal timing path runs from one flip-flop to another. The latency is
-2 clock cycles and the throughput is one product per clock cycle.
+\textbf{GitHub link:} \url{https://github.com/KarthiK-Ande-22/DVD-Assignment-1}
 
-\subsection{Tools and environment}
+We designed a registered 4-bit $\times$ 4-bit unsigned array multiplier (8-bit product, 2-cycle latency,
+one result per cycle) and took it from Verilog RTL to a GDSII layout on SkyWater SKY130 (\texttt{sky130\_fd\_sc\_hd})
+with open-source tools. Each part checks one aspect of the design:
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.2cm}Y}
+\toprule
+\textbf{Part} & \textbf{Result} \\
+\midrule
+A. RTL design and verification & 256/256 input pairs correct; an injected adder bug gives 95 errors \\
+B. Logic synthesis & 73 cells, 805.77 \umsq; netlist passes the same 256 tests \\
+C. Static timing analysis & $T_{min}$ = 2.596 ns, $F_{max}$ = 385.21 MHz (typical corner) \\
+D. Physical design & 0 DRC, 0 LVS at a 7.0 ns clock; post-route $F_{max}$ = 150.70 MHz \\
+\bottomrule
+\end{tabularx}
+\caption{Parts of the flow and their results.}\label{tab:flow}
+\end{table}
+
+The Part A testbench also verifies the Part B netlist, Part C analyses that netlist, and $1.2 \times T_{min}$
+from Part C sets the first clock period of Part D. Source files, reports, the GDSII and every command
+(\texttt{README.md}) are in the repository linked above. Table~\ref{tab:tools} lists the tools used.
 
 \begin{table}[H]
 \centering
@@ -85,47 +102,19 @@ inputs and its output, so every internal timing path runs from one flip-flop to 
 \toprule
 \textbf{Stage} & \textbf{Tool and version} \\
 \midrule
-RTL and gate-level simulation & Icarus Verilog 14.0 (\texttt{iverilog -g2012}, \texttt{vvp}) \\
-Waveform viewing & GTKWave 4.0.0 \\
+Simulation, waveforms & Icarus Verilog 14.0 (\texttt{-g2012}), GTKWave 4.0.0 \\
 Logic synthesis & Yosys 0.70 with ABC \\
 Static timing analysis & OpenSTA 3.1.0 \\
-RTL-to-GDSII flow & LibreLane 3.1.0.dev3, Classic flow (Yosys, OpenROAD, Magic, KLayout, Netgen) \\
-Layout viewing & KLayout with the SKY130 layer properties from the PDK \\
-PDK and library & \texttt{sky130A}, \texttt{sky130\_fd\_sc\_hd}; Liberty file
-                  \texttt{sky130\_fd\_sc\_hd\_\_tt\_025C\_1v80.lib} (typical corner) for Parts B and C \\
-Environment & IIC-OSIC-TOOLS Docker image \texttt{hpretl/iic-osic-tools:latest} on Ubuntu 24.04.4;
-              the project folder is mounted at \texttt{/foss/designs/mult4\_2023102009} \\
+RTL-to-GDSII flow & LibreLane 3.1.0.dev3, Classic flow (OpenROAD, Magic, KLayout, Netgen) \\
+PDK and library & \texttt{sky130A}, \texttt{sky130\_fd\_sc\_hd}; typical corner \texttt{tt\_025C\_1v80}
+                  (typical transistors, 25 $^\circ$C, 1.80 V) for Parts B and C \\
+Environment & Ubuntu 24.04 host; IIC-OSIC-TOOLS Docker container for all parts
+              (\texttt{sky130A} selected explicitly, as the container defaults to IHP) \\
 \bottomrule
 \end{tabularx}
-\caption{Tools used in each stage of the flow.}
+\caption{Tools used in each stage of the flow.}\label{tab:tools}
 \end{table}
 
-The container's default PDK is IHP \texttt{ihp-sg13g2}, so SKY130 is selected explicitly in every step
-(\texttt{\$PDK\_ROOT/sky130A/...} paths in Parts A--C and \texttt{PDK=sky130A} in Part D).
-
-\subsection{Repository layout}
-
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{lY}
-\toprule
-\textbf{Path} & \textbf{Contents} \\
-\midrule
-\texttt{README.md} & team, environment, every command in order \\
-\texttt{rtl/full\_adder.v} & full adder (\texttt{assign} statements) \\
-\texttt{rtl/mult\_array.v} & array multiplier: 16 AND gates, 12 \texttt{full\_adder} instances, 16 flip-flops \\
-\texttt{tb/tb\_mult.v} & exhaustive self-checking testbench (256 vectors) \\
-\texttt{synth/} & \texttt{synth.tcl} $\rightarrow$ \texttt{mult\_array\_netlist.v}, \texttt{mult\_array\_stat.rpt} \\
-\texttt{sta/} & \texttt{sta.tcl} $\rightarrow$ \texttt{mult\_array\_timing.rpt} \\
-\texttt{pnr/} & \texttt{config.json} $\rightarrow$ \texttt{metrics.json}, \texttt{mult\_array.gds} (final run) \\
-\texttt{results/PartA..PartD/} & logs, tables, screenshots and write-ups for every task \\
-\texttt{report/report.pdf} & this report \\
-\bottomrule
-\end{tabularx}
-\caption{Repository layout.}
-\end{table}
-
-\clearpage
 % ================================================================== 2
 \section{Part A: RTL Design and Verification}
 
@@ -138,13 +127,26 @@ The container's default PDK is IHP \texttt{ihp-sg13g2}, so SKY130 is selected ex
 \texttt{cout} &= a\,b + b\,cin + a\,cin && \text{(majority: 1 when two or more inputs are 1)}
 \end{align*}
 
-\subsection{Array multiplier architecture}
+\subsection{How the array multiplier works}
 
-For every bit $b_i$ of $B$ there is one partial product $pp_i = A \wedge b_i$, so
-$pp_i[j] = a[j]\cdot b[i]$. This gives $4 \times 4 = 16$ AND gates. Row 0 has no adders. Rows 1 to 3 are
-4-bit ripple-carry adders of 4 full adders each, giving $3 \times 4 = 12$ full adders. Each row adds its
-partial product to the 4 bits passed down from the row above; the lowest sum bit of each row is a
-finished product bit.
+Binary multiplication follows the same long-multiplication method used on paper, except that every digit
+is 0 or 1. Bit $b_i$ of the multiplier $B$ decides what appears in row $i$: the partial product $pp_i$ is a
+copy of $A$ when $b_i = 1$ and all zeros when $b_i = 0$, and it is worth $2^i$, i.e.\ shifted $i$ places to the
+left. Selecting one bit is a single AND, $pp_i[j] = a[j] \cdot b[i]$, so the four 4-bit partial products need
+$4 \times 4 = 16$ AND gates. The product is the sum of the four shifted partial products.
+
+Instead of one large adder, the array accumulates the partial products one row at a time
+(Table~\ref{tab:conn}):
+\begin{itemize}[nosep]
+  \item \textbf{Row 0} contains only AND gates. Its least significant bit $pp_0[0]$ has nothing to be added
+        to, so it is already the product bit $p[0]$; its upper three bits move down to row 1.
+  \item \textbf{Rows 1, 2 and 3} are each a 4-bit \emph{ripple-carry adder}: a chain of 4 full adders in
+        which every carry-out feeds the carry-in of the next adder, and the first carry-in is 0. Row $i$ adds
+        $pp_i$ to the 4 bits arriving from the row above. Three rows of four give the 12 full adders.
+  \item Once a row has added, its lowest sum bit can no longer change, so it is a finished product bit
+        ($p[1]$, $p[2]$, $p[3]$); the other three sum bits and the final carry move down to the next row.
+        Row 3 has no row below it, so its remaining outputs form the upper half of the product, $p[7{:}4]$.
+\end{itemize}
 
 \begin{table}[H]
 \centering
@@ -159,89 +161,102 @@ finished product bit.
 3 & $pp_3[j], r_2[j], c_3[j]$ \;($c_3[0]=0$) & $s_3[j], c_3[j{+}1]$;\; $p[3] = s_3[0]$;\; $p[7{:}4] = \{c_3[4], s_3[3], s_3[2], s_3[1]\}$ \\
 \bottomrule
 \end{tabular}}
-\caption{Connections of the array (Section 2 of the assignment).}\label{tab:conn}
+\caption{Connections of the array ($j = 0 \ldots 3$; the first carry into each row is $c_i[0] = 0$).}\label{tab:conn}
 \end{table}
 
-Implementation in \texttt{rtl/mult\_array.v}:
+\textbf{RTL implementation.} \texttt{rtl/mult\_array.v} has exactly the required ports:
 \begin{itemize}[nosep]
-  \item Ports \texttt{clk}, \texttt{rst\_n} (asynchronous, active low), \texttt{a[3:0]}, \texttt{b[3:0]},
-        \texttt{p[7:0]} (registered), exactly as specified.
-  \item Input registers \texttt{a\_reg}, \texttt{b\_reg} (8 flip-flops) capture \texttt{a} and \texttt{b}
-        on every rising edge; reset clears them to 0.
-  \item Partial products \texttt{pp\textit{i} = a\_reg \& \{4\{b\_reg[\textit{i}]\}\}}: the 16 AND gates.
-  \item Three adder rows with 4 \texttt{full\_adder} instances each (\texttt{fa10}..\texttt{fa33}),
-        12 instances in total; carry chains \texttt{c1}, \texttt{c2}, \texttt{c3} with bit 0 tied to 0.
-  \item The 8-bit result is registered into \texttt{p} (8 flip-flops), giving 16 flip-flops in total.
-  \item The \texttt{*} operator is not used anywhere in the RTL.
+  \item \texttt{clk}: the clock; all registers update on its rising edge.
+  \item \texttt{rst\_n}: asynchronous, active-low reset. When it goes to 0, every register is cleared to 0
+        immediately, without waiting for a clock edge.
+  \item \texttt{a[3:0]}, \texttt{b[3:0]}: the two operands.
+  \item \texttt{p[7:0]}: the product, driven directly by a register.
 \end{itemize}
+Inside the module the data flows through four stages:
+\begin{enumerate}[nosep]
+  \item On each rising edge the operands are stored in the 4-bit input registers \texttt{a\_reg} and
+        \texttt{b\_reg} (8 flip-flops).
+  \item The partial products are formed from the registered values, \texttt{pp\textit{i} = a\_reg \&
+        \{4\{b\_reg[\textit{i}]\}\}}, which gives the 16 AND gates.
+  \item Twelve \texttt{full\_adder} instances, \texttt{fa10} to \texttt{fa33} (row, position), are connected
+        exactly as in Table~\ref{tab:conn}. The carry chains \texttt{c1}, \texttt{c2}, \texttt{c3} have their
+        bit 0 tied to 0.
+  \item The combinational result \{\texttt{c3[4]}, \texttt{s3[3:0]}, \texttt{s2[0]}, \texttt{s1[0]},
+        \texttt{pp0[0]}\} is stored in the output register \texttt{p} (8 flip-flops) on the next rising edge.
+\end{enumerate}
+This gives 16 flip-flops in total, and the \texttt{*} operator is not used anywhere in the RTL.
+
+\textbf{Latency and throughput.} Because both the inputs and the output are registered, an operand pair
+applied before a rising edge is captured at that edge (edge 1), passes through the AND gates and adder rows
+during the following clock period, and its product is captured into \texttt{p} at the next edge (edge 2).
+The \emph{latency} is therefore 2 clock cycles. The \emph{throughput} is one product per cycle: while one
+product is being computed between the two register stages, the input registers can already accept the
+next operand pair. The structure is shown in Figure~\ref{fig:block}.
 
 \subsection{Block diagram}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{block_diagram.png}
-\caption{Block diagram of \texttt{mult\_array} in a bit-weight-aligned layout: input registers
-\texttt{a\_reg}/\texttt{b\_reg} (8 flip-flops), 16 AND gates $pp_i[j]$, 12 full adders FA[$i$,$j$] in three
-ripple-carry rows, and the output register \texttt{p} (8 flip-flops). Partial products and sums flow
-straight down, carries flow from right to left.}
+\caption{Block diagram of \texttt{mult\_array}: input registers \texttt{a\_reg}/\texttt{b\_reg} (8 flip-flops),
+16 AND gates $pp_i[j]$, 12 full adders FA[$i$,$j$] in three ripple-carry rows, and the output register \texttt{p}
+(8 flip-flops). Each row passes its upper sum bits diagonally into the next row and its final carry
+$c_i[4]$ into FA[$i{+}1$,3]; carries (red, dashed) ripple from right to left.}\label{fig:block}
 \end{figure}
 
 \subsection{Testbench}
 
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.6cm}Y}
-\toprule
-\textbf{Requirement} & \textbf{How \texttt{tb/tb\_mult.v} meets it} \\
-\midrule
-10 ns clock; \texttt{rst\_n} low for the first 2 cycles &
-\texttt{always \#5 clk = \~{}clk}. \texttt{rst\_n} is 0 from time 0 and is released at the falling edge after
-the second rising edge (20 ns). \\
-All 256 input combinations & Nested loops \texttt{a\_value} = 0..15 and \texttt{b\_value} = 0..15. \\
-Wait for the 2-cycle latency and compare with \texttt{a * b} &
-Inputs change at a falling edge; the testbench waits two rising edges (capture into \texttt{a\_reg}/\texttt{b\_reg},
-then into \texttt{p}) and checks \texttt{p} 2 ns later against \texttt{expected = a\_value * b\_value}.
-The \texttt{*} operator appears only here. \\
-Print every mismatch; one summary line &
-\texttt{Mismatch: a=.. b=.. expected=.. got=..} for each error, then exactly one
-\texttt{PASS: 256 vectors checked, 0 errors} or \texttt{FAIL: 256 vectors checked, N errors}. \\
-Waveform file \texttt{mult.vcd} & \texttt{\$dumpfile("mult.vcd"); \$dumpvars(0, tb\_mult);} \\
-\bottomrule
-\end{tabularx}
-\caption{Testbench requirements and how \texttt{tb/tb\_mult.v} meets them.}
-\end{table}
-
-Each vector takes 2 clock cycles (20 ns): vector $k$ is applied at $30 + 20k$ ns and checked 17 ns later,
-so the last check is at $47 + 20 \times 255 = 5147$ ns, matching \texttt{\$finish called at 5147000 (1ps)}.
+\texttt{tb/tb\_mult.v} (module \texttt{tb\_mult}) is an exhaustive, self-checking testbench: it applies every
+input pair, computes the expected product itself, and reports the result without manual inspection.
+It runs in this order:
+\begin{enumerate}[nosep]
+  \item \textbf{Clock and waveform.} \texttt{always \#5 clk = \~{}clk} gives a 10 ns clock; all signals are
+        dumped to \texttt{mult.vcd} from time 0.
+  \item \textbf{Reset.} \texttt{rst\_n} = 0 for the first 2 rising edges (5 and 15 ns) and is released at the
+        falling edge at 20 ns, so all 16 registers start at 0.
+  \item \textbf{All 256 inputs.} Two nested loops set \texttt{a} = 0..15 and \texttt{b} = 0..15. Each new pair is
+        applied at a falling edge, half a cycle away from the rising edges, so it is never sampled while changing.
+  \item \textbf{Latency and check.} The testbench waits 2 rising edges (edge 1 loads \texttt{a\_reg}/\texttt{b\_reg},
+        edge 2 loads \texttt{p}), then 2 ns more, and compares \texttt{p} with \texttt{expected = a * b}. The
+        \texttt{*} operator is used only here, as the reference. The comparison uses \texttt{!==}, so an unknown
+        (\texttt{x}) output also counts as an error.
+  \item \textbf{Reporting.} Every mismatch prints \texttt{Mismatch: a=.. b=.. expected=.. got=..} and increments an
+        error counter. After the last vector exactly one summary line is printed,
+        \texttt{PASS: 256 vectors checked, 0 errors} or \texttt{FAIL: 256 vectors checked, N errors}.
+\end{enumerate}
+Each vector takes 2 clock cycles: vector $k$ is applied at $30 + 20k$ ns and checked at $47 + 20k$ ns, so the
+run ends at $47 + 20 \times 255 = 5147$ ns, matching \texttt{\$finish called at 5147000 (1ps)}.
 
 \subsection{Simulation results}
 
+The design is simulated with:
 \begin{lstlisting}
-$ iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v
-$ vvp sim
-VCD info: dumpfile mult.vcd opened for output.
-PASS: 256 vectors checked, 0 errors
+iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v
+vvp sim
 \end{lstlisting}
 
-\textbf{Error-injection test (task 6).} To check that the testbench catches errors, the sum in
-\texttt{full\_adder.v} was temporarily changed from \texttt{a \^{} b \^{} cin} to \texttt{a \^{} b},
-which ignores the carry-in. The testbench was run again and the file was then restored with
-\texttt{git checkout rtl/full\_adder.v} (\texttt{git diff} empty, PASS again):
+To check that the testbench really catches errors (task 6), the sum in \texttt{full\_adder.v} was
+temporarily changed from \texttt{a \^{} b \^{} cin} to \texttt{a \^{} b} (carry-in ignored), simulated, and then
+restored with \texttt{git checkout rtl/full\_adder.v}:
 
-\begin{lstlisting}
-Mismatch: a=3 b=3 expected=9 got=5
-Mismatch: a=3 b=6 expected=18 got=10
-Mismatch: a=3 b=7 expected=21 got=9
-Mismatch: a=3 b=11 expected=33 got=29
-Mismatch: a=3 b=12 expected=36 got=20
-... (90 more Mismatch lines)
-FAIL: 256 vectors checked, 95 errors
-\end{lstlisting}
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Run} & \textbf{RTL} & \textbf{Summary line} \\
+\midrule
+1 & correct design & \texttt{PASS: 256 vectors checked, 0 errors} \\
+2 & bug injected: \texttt{sum = a \^{} b} & \texttt{FAIL: 256 vectors checked, 95 errors} \\
+3 & restored (\texttt{git diff} empty) & \texttt{PASS: 256 vectors checked, 0 errors} \\
+\bottomrule
+\end{tabular}
+\caption{RTL simulation results and the error-injection test.}
+\end{table}
 
-95 of the 256 products are wrong. A vector can only fail when some full adder has a carry-in of 1, so
-products that never create an internal carry (for example $a = 0$, $b = 0$ or a power-of-two operand)
-still pass. The testbench therefore detects a broken adder. Logs: \texttt{results/PartA/1\_rtl\_sim\_pass.log},
-\texttt{results/PartA/2\_fail\_test.log}.
+In run 2 every wrong product is printed, e.g.\ \texttt{Mismatch: a=3 b=3 expected=9 got=5}. Only 95 of 256
+fail because the bug matters only when a full adder has a carry-in of 1; products with no internal carry
+(e.g.\ $a = 0$, $b = 0$ or a power-of-two operand) are still correct. Full logs:
+\texttt{results/PartA/1\_rtl\_sim\_pass.log} and \texttt{results/PartA/2\_fail\_test.log}.
 
 \subsection{Hand-worked example (task 5)}
 
@@ -287,6 +302,9 @@ shift-and-add result. The full working, including every full adder's inputs and 
 
 In the exhaustive testbench the pair $a = 14$, $b = 7$ is vector $14 \times 16 + 7 = 231$, applied at
 $30 + 20 \times 231 = 4650$ ns.
+This shows the 2-cycle latency directly: the operands are captured at the first rising edge after they are
+applied (4655 ns), and the product 98 appears on \texttt{p} one rising edge later (4665 ns), so a result is
+available two clock cycles after its inputs.
 
 \begin{figure}[H]
 \centering
@@ -304,6 +322,13 @@ GTKWave shows \texttt{p} in hexadecimal (\texttt{0x54} = 84, \texttt{0x62} = 98,
 
 \subsection{Synthesis script}
 
+Synthesis translates the behavioural Verilog into a \emph{netlist}: a list of real SKY130 standard cells
+and the wires that connect them. Each cell is a fixed, pre-designed layout whose area and delay are given in
+the \emph{Liberty} file (\texttt{.lib}). The key step is \texttt{abc}, which performs \emph{technology mapping}:
+it chooses the combination of library gates that implements the logic with good area and delay. Because of
+\texttt{-flatten}, ABC sees the whole multiplier as one block instead of 12 separate full adders, so it can
+optimise across adder boundaries. Table~\ref{tab:synth} lists the steps of \texttt{synth/synth.tcl}.
+
 \begin{table}[H]
 \centering
 \begin{tabularx}{\textwidth}{c>{\raggedright\arraybackslash}p{7.4cm}Y}
@@ -319,13 +344,19 @@ GTKWave shows \texttt{p} in hexadecimal (\texttt{0x54} = 84, \texttt{0x62} = 98,
 7 & \texttt{yosys write\_verilog -noattr synth/mult\_array\_netlist.v} & Gate-level netlist \\
 \bottomrule
 \end{tabularx}
-\caption{Steps of \texttt{synth/synth.tcl}, run with \texttt{yosys -c synth/synth.tcl}.}
+\caption{Steps of \texttt{synth/synth.tcl}, run with \texttt{yosys -c synth/synth.tcl}.}\label{tab:synth}
 \end{table}
 
 \texttt{\$lib} is the typical-corner Liberty file
 \path{$PDK_ROOT/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib}.
 
 \subsection{Part B results}
+
+All 16 flip-flops are \cell{dfrtp\_1}: a D flip-flop with an active-low asynchronous reset (the \cell{\_1}
+suffix is the drive strength). The remaining 57 cells implement the logic: 7 XOR/XNOR and 1 \cell{maj3}
+cells for the adders' sums and carries, 6 AND and 19 NAND/NOR gates, 20 compound AND-OR / OR-AND gates
+(such as \cell{a21oi} = $\overline{A_1A_2 + B_1}$), 3 isolation-type cells and 1 inverter
+(Table~\ref{tab:cells}).
 
 \begin{table}[H]
 \centering
@@ -371,24 +402,40 @@ Inverters & \cell{clkinv\_1} & 1 & 3.754 \\
 
 \subsection{Gate-level (netlist) simulation}
 
-The synthesised netlist was simulated with the same testbench and the SKY130 cell models, to show that
-synthesis did not change the behaviour:
+Synthesis could, in principle, break the design (for example by mapping a register wrongly). To check this,
+we ran the \emph{same} testbench on the synthesised netlist instead of the RTL. The simulator is given the
+netlist together with the SKY130 cell models (\texttt{primitives.v} and \texttt{sky130\_fd\_sc\_hd.v}):
+\texttt{-DFUNCTIONAL} uses the logic-only version of each cell, and \texttt{-DUNIT\_DELAY=\#1} adds a tiny delay
+to every cell so that signals change in a clean order.
 
-\begin{lstlisting}
-$ CELLS=$PDK_ROOT/sky130A/libs.ref/sky130_fd_sc_hd/verilog
-$ iverilog -g2012 -DFUNCTIONAL -DUNIT_DELAY=#1 -o gls \
-    tb/tb_mult.v $CELLS/primitives.v $CELLS/sky130_fd_sc_hd.v synth/mult_array_netlist.v
-$ vvp gls
-VCD info: dumpfile mult.vcd opened for output.
-PASS: 256 vectors checked, 0 errors
-tb/tb_mult.v:73: $finish called at 5147000 (1ps)
+\begin{lstlisting}[frame=none, xleftmargin=1.5em]
+CELLS=$PDK_ROOT/sky130A/libs.ref/sky130_fd_sc_hd/verilog
+iverilog -g2012 -DFUNCTIONAL -DUNIT_DELAY=#1 -o gls \
+    tb/tb_mult.v $CELLS/primitives.v $CELLS/sky130_fd_sc_hd.v \
+    synth/mult_array_netlist.v
+vvp gls
 \end{lstlisting}
+
+\textbf{Result:} \texttt{PASS: 256 vectors checked, 0 errors}. The netlist gives the same product as the RTL
+for every input, so synthesis did not change the behaviour.
 
 \clearpage
 % ================================================================== 4
 \section{Part C: Static Timing Analysis with OpenSTA}
 
 \subsection{STA script and constraints}
+
+Static timing analysis (STA) finds the maximum speed without running any simulation: it traces every path
+from one flip-flop to the next and adds up the cell delays taken from the Liberty file. Data launched at one
+rising edge must arrive and settle before the next rising edge, which gives the setup condition
+\[
+t_{clk\rightarrow Q} + t_{logic} + t_{setup} \le T ,
+\]
+where $t_{clk\rightarrow Q}$ is the delay of the launching flip-flop, $t_{logic}$ the delay through the gates and
+$t_{setup}$ the time the data must be stable before the capturing edge. The \emph{slack} of a path is its
+required time ($T - t_{setup}$) minus its arrival time: positive slack means the path meets timing, negative
+means it fails. The smallest slack in the design is the worst negative slack (WNS), and the path that has it
+is the \emph{critical path}. \texttt{sta/sta.tcl} runs the steps below.
 
 \begin{table}[H]
 \centering
@@ -454,58 +501,89 @@ Throughput (million results per second) & 385.21 (one result per clock cycle) \\
 \centering
 \small
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{rlllrr}
+\begin{tabular}{rllllrr}
 \toprule
-\textbf{\#} & \textbf{Instance} & \textbf{Cell} & \textbf{Function in the multiplier} & \textbf{Incr (ns)} & \textbf{Arrival (ns)} \\
+\textbf{\#} & \textbf{Instance} & \textbf{Cell} & \textbf{Output equals} & \textbf{Role in the multiplier} & \textbf{Incr (ns)} & \textbf{Arrival (ns)} \\
 \midrule
-1 & \texttt{\_118\_/Q} & \cell{dfrtp\_1} & input register \texttt{b\_reg[0]}, CLK$\rightarrow$Q & 0.395 & 0.395 \\
-2 & \texttt{\_083\_/X} & \cell{and2\_0} & AND gate $pp_0[0] = a\_reg[0] \cdot b\_reg[0]$ & 0.212 & 0.607 \\
-3 & \texttt{\_055\_/X} & \cell{or3\_1} & row-1 carry logic (merged) & 0.361 & 0.968 \\
-4 & \texttt{\_059\_/X} & \cell{and4\_1} & row-1 carry logic merged with an \texttt{a\_reg[1]} AND & 0.215 & 1.183 \\
-5 & \texttt{\_070\_/X} & \cell{o2111a\_1} & carry logic merged with $pp_2[2]$ & 0.234 & 1.417 \\
-6 & \texttt{\_076\_/Y} & \cell{o21ai\_0} & carry-chain logic & 0.216 & 1.634 \\
-7 & \texttt{\_090\_/X} & \cell{xnor3\_1} & full-adder sum & 0.274 & 1.907 \\
-8 & \texttt{\_091\_/X} & \cell{maj3\_1} & full-adder carry & 0.375 & 2.282 \\
-9 & \texttt{\_092\_/X} & \cell{xor3\_1} & full-adder sum of FA[3,3] $\rightarrow$ \texttt{fa33.sum} & 0.178 & 2.460 \\
-10 & \texttt{\_112\_/D} & \cell{dfrtp\_1} & output register \texttt{p[6]}, setup 0.135 ns & 0.000 & 2.460 \\
+1 & \texttt{\_118\_/Q} & \cell{dfrtp\_1} & \texttt{b\_reg[0]} & launch flip-flop (input register) & 0.395 & 0.395 \\
+2 & \texttt{\_083\_/X} & \cell{and2\_0} & $pp_0[0]$ & AND gate $a_0 b_0$, reused in the row-1 carry logic & 0.212 & 0.607 \\
+3 & \texttt{\_055\_/X} & \cell{or3\_1} & $\overline{c_1[2]} + pp_0[0]$ & part of the carry of FA[1,1] & 0.361 & 0.968 \\
+4 & \texttt{\_059\_/X} & \cell{and4\_1} & $pp_2[1] \cdot c_2[1]$ & carry term of FA[2,1] & 0.215 & 1.183 \\
+5 & \texttt{\_070\_/X} & \cell{o2111a\_1} & $pp_2[2] \cdot c_2[2]$ & carry term of FA[2,2] & 0.234 & 1.417 \\
+6 & \texttt{\_076\_/Y} & \cell{o21ai\_0} & $\overline{c_2[3]}$ & carry out of FA[2,2] (inverted) & 0.216 & 1.634 \\
+7 & \texttt{\_090\_/X} & \cell{xnor3\_1} & $\overline{s_2[3]}$ & sum of FA[2,3] (inverted) & 0.274 & 1.907 \\
+8 & \texttt{\_091\_/X} & \cell{maj3\_1} & $\overline{c_3[3]}$ & carry out of FA[3,2] (inverted) & 0.375 & 2.282 \\
+9 & \texttt{\_092\_/X} & \cell{xor3\_1} & $s_3[3]$ & sum of FA[3,3] $\rightarrow$ \texttt{p[6]} & 0.178 & 2.460 \\
+10 & \texttt{\_112\_/D} & \cell{dfrtp\_1} & \texttt{p[6]} & capture flip-flop, setup 0.135 ns & 0.000 & 2.460 \\
 \bottomrule
 \end{tabular}}
-\caption{Critical path from \texttt{sta/mult\_array\_timing.rpt} ($T$ = 2.60 ns). Cell roles were traced in
-\texttt{synth/mult\_array\_netlist.v}.}
+\caption{Critical path from \texttt{sta/mult\_array\_timing.rpt} ($T$ = 2.60 ns). Cell roles were found by simulating
+the netlist for all 256 values of (\texttt{a\_reg}, \texttt{b\_reg}) and matching each net's truth table with the
+RTL signals $pp_i[j]$, $s_i[j]$, $c_i[j]$ (a bar means the inverted signal).}\label{tab:critpath}
 \end{table}
 
 Data arrival = 2.460 ns; data required = 2.600 $-$ 0.135 = 2.465 ns; slack = +0.004 ns. At $T$ = 10 ns the same
-path has slack 9.865 $-$ 2.460 = +7.404 ns. The input-to-register and register-to-output paths are short,
-so the register-to-register path through the adder array sets $T_{min}$. The report also lists the
-asynchronous reset recovery check (\texttt{rst\_n} $\rightarrow$ \texttt{RESET\_B}); its slack is +9.228 ns
-at 10 ns and +1.828 ns at 2.60 ns, so it never limits the clock.
+path has slack 9.865 $-$ 2.460 = +7.404 ns.
+
+\textbf{Other paths.} All other paths are short. An input-to-register path is only the 1.0 ns input delay
+straight into a flip-flop, and a register-to-output path is only CLK$\rightarrow$Q plus the 1.0 ns output delay.
+The report also checks the \emph{recovery} time of the asynchronous reset (\texttt{rst\_n} must be released a
+minimum time before a clock edge): its slack is +9.228 ns at 10 ns and +1.828 ns at 2.60 ns. Neither limits the
+clock, so the register-to-register path through the adder array sets $T_{min}$.
 
 \subsection{Comparison with the $2N = 8$ full-adder estimate}
 
-\begin{itemize}[nosep]
-  \item The path has 8 combinational cells with 2.065 ns of logic delay ($2.460 - 0.395$), about 0.26 ns per cell.
-  \item 7 of the 8 cells come from full-adder logic: 3 pure full-adder functions (\cell{xnor3} sum,
-        \cell{maj3} carry, \cell{xor3} sum of FA[3,3]) and 4 compound gates (\cell{or3}, \cell{and4},
-        \cell{o2111a}, \cell{o21ai}) that implement the ripple carry merged with partial-product ANDs.
-        Only \cell{\_083\_} (\cell{and2\_0}) is a plain AND gate.
-  \item This matches the estimate of about $2N = 8$ full-adder delays well. The match is approximate
-        because \texttt{synth -flatten} removes the \texttt{full\_adder} boundaries and ABC folds AND gates
-        and parts of several full adders into single compound cells.
-\end{itemize}
+\textbf{Full-adder stages.} The path passes through 6 full adders: FA[1,1] $\rightarrow$ FA[2,1] $\rightarrow$
+FA[2,2] $\rightarrow$ FA[2,3] $\rightarrow$ FA[3,2] $\rightarrow$ FA[3,3]. It follows the carry along row 1, down
+into row 2, along row 2, and then through the sums and carries of rows 2 and 3 into product bit 6. Seven of the
+8 logic cells belong to these adders; only \cell{\_083\_} (\cell{and2\_0}) is a plain AND gate.
 
-\clearpage
+\textbf{Delay per stage.} The 8 logic cells add 2.065 ns ($2.460 - 0.395$), about 0.26 ns per cell. Each full
+adder costs only about one cell because the path uses either its carry or its sum, never both: a carry is one
+\cell{maj3} or AND-OR cell, and a sum is one \cell{xor3}/\cell{xnor3} cell.
+
+\textbf{Comparison with 2N.} Six full-adder stages in 8 cells agree well with the estimate of about $2N = 8$
+full-adder delays, which is only an approximation of the longest chain. The match cannot be exact because
+\texttt{synth -flatten} removes the \texttt{full\_adder} boundaries and ABC merges AND gates and parts of several
+adders into single compound cells.
+
 % ================================================================== 5
 \section{Part D: Physical Design with LibreLane}
 
-\subsection{Configuration and flow}
+\subsection{The flow}
 
-LibreLane 3.1.0.dev3 (Classic flow) was run inside the IIC-OSIC-TOOLS container with the SKY130 PDK
-selected (\texttt{export PDK=sky130A STD\_CELL\_LIBRARY=sky130\_fd\_sc\_hd}; \texttt{librelane config.json}).
-The flow runs synthesis (Yosys), floorplan and power grid, tap insertion, placement, clock-tree synthesis
-and timing repair, routing (OpenROAD), RC extraction and multi-corner STA, DRC (Magic and KLayout),
-LVS (Netgen), and writes the GDSII.
+LibreLane 3.1.0.dev3 (Classic flow) takes the RTL all the way to a layout that could be sent for
+manufacture, running about 76 automatic steps. It was run inside the IIC-OSIC-TOOLS container with the
+SKY130 PDK selected (\texttt{export PDK=sky130A STD\_CELL\_LIBRARY=sky130\_fd\_sc\_hd}, then
+\texttt{librelane config.json}), because the container's default PDK is IHP. Table~\ref{tab:stages} summarises
+the main stages.
 
-\begin{lstlisting}[caption={\texttt{pnr/config.json} (final run)}]
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{lY}
+\toprule
+\textbf{Stage} & \textbf{What it does} \\
+\midrule
+Synthesis & Converts the RTL into SKY130 standard cells, as in Part B (LibreLane uses its own Yosys script). \\
+Floorplan & Fixes the die at 150 \um{} $\times$ 150 \um{} and the core (the area for cells) at 17759.5 \umsq, and creates 47 rows of cell sites. \\
+Power grid & Builds the VPWR (1.8 V) and VGND (0 V) supply rails and straps. \\
+Tap insertion & Places well-tap cells at regular spacing in every row. \\
+Placement & Puts every cell on a legal site in the rows; buffers are added on the I/O ports and on high-fanout nets. \\
+CTS & Clock-tree synthesis: buffers the clock so it reaches all 16 flip-flops at nearly the same time (the difference is the \emph{skew}). \\
+Timing repair & Resizes gates and adds buffers where the timing estimate shows a violation. \\
+Routing & Draws the metal wires and vias between all pins. \\
+Extraction & Calculates the real resistance and capacitance of every wire. \\
+Signoff & STA with the real wires at 9 corners, DRC (Magic and KLayout), LVS (Netgen), antenna and IR-drop checks. \\
+GDSII & Writes the final layout file that would be sent to the foundry. \\
+\bottomrule
+\end{tabularx}
+\caption{Main stages of the LibreLane Classic flow.}\label{tab:stages}
+\end{table}
+
+\texttt{pnr/config.json} contains exactly the six required keys:
+
+\begin{lstlisting}[frame=none, xleftmargin=1.5em]
 {
   "DESIGN_NAME": "mult_array",
   "VERILOG_FILES": ["dir::../rtl/full_adder.v", "dir::../rtl/mult_array.v"],
@@ -516,40 +594,56 @@ LVS (Netgen), and writes the GDSII.
 }
 \end{lstlisting}
 
-The die is fixed at 150 \um{} $\times$ 150 \um{}. The core box is (5.52, 10.88) to (144.44, 138.72) \um{},
-which holds 47 rows of \texttt{unithd} sites.
+The core box is (5.52, 10.88) to (144.44, 138.72) \um{} inside the fixed 150 \um{} $\times$ 150 \um{} die.
 
 \subsection{Timing closure: every attempt}
 
-Starting period: $1.2 \times T_{min} = 1.2 \times 2.596 = 3.115$ ns, rounded up to the next 0.5 ns = 3.5 ns.
-After each run that failed setup timing, CLOCK\_PERIOD was increased by 0.5 ns. The configuration and
-metrics of every attempt are kept in \texttt{results/PartD/attempts/}.
+The first clock period is $1.2 \times T_{min} = 1.2 \times 2.596 = 3.115$ ns, rounded up to the next 0.5 ns,
+i.e.\ 3.5 ns. The 20 \% margin over the Part C result is meant to cover the delay of real wires and the clock
+tree. After every run that failed setup timing, the period was increased by 0.5 ns.
+
+\textbf{Corners.} Manufacturing and operating conditions vary, so signoff STA checks 9 \emph{corners}: three
+process/voltage/temperature conditions --- typical (tt, 1.80 V, 25 $^\circ$C), slow (ss, 1.60 V, 100 $^\circ$C)
+and fast (ff, 1.95 V, $-40$ $^\circ$C) --- each with minimum, nominal and maximum wire RC. The chip must meet
+timing at all of them. Setup is hardest at the slow corner (slowest cells) and hold at the fast corner.
 
 \begin{table}[H]
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{cccccccc}
 \toprule
-\textbf{Run} & \textbf{Period (ns)} & \textbf{Setup slack (ns)} & \textbf{tt slack (ns)} & \textbf{Hold slack (ns)} & \textbf{DRC} & \textbf{LVS} & \textbf{Result} \\
+\textbf{Run} & \textbf{Period} & \textbf{Slow-corner slack} & \textbf{Cells added} & \textbf{Final setup} & \textbf{Hold} & \textbf{Wire-} & \textbf{Result} \\
+ & \textbf{(ns)} & \textbf{estimated before routing (ns)} & \textbf{by timing repair} & \textbf{slack (ns)} & \textbf{slack (ns)} & \textbf{length (\um)} & \\
 \midrule
-1 & 3.5 & $-2.154$ & +0.587 & +0.100 & 0 & 0 & FAIL (setup) \\
-2 & 4.0 & $-1.654$ & +1.087 & +0.147 & 0 & 0 & FAIL (setup) \\
-3 & 4.5 & $-1.154$ & +1.587 & +0.147 & 0 & 0 & FAIL (setup) \\
-4 & 5.0 & $-0.654$ & +2.087 & +0.147 & 0 & 0 & FAIL (setup) \\
-5 & 5.5 & $-0.155$ & +2.587 & +0.147 & 0 & 0 & FAIL (setup) \\
-6 & 6.0 & $-0.107$ & +2.899 & +0.148 & 0 & 0 & FAIL (setup) \\
-7 & 6.5 & $-0.136$ & +3.199 & +0.141 & 0 & 0 & FAIL (setup) \\
-8 & \textbf{7.0} & \textbf{+0.364} & +3.699 & +0.141 & 0 & 0 & \textbf{PASS} \\
+1 & 3.5 & $-2.565$ & 4 & $-2.154$ & +0.100 & 2400 & FAIL \\
+2 & 4.0 & $-2.065$ & 4 & $-1.654$ & +0.147 & 2400 & FAIL \\
+3 & 4.5 & $-1.565$ & 4 & $-1.154$ & +0.147 & 2400 & FAIL \\
+4 & 5.0 & $-1.065$ & 4 & $-0.654$ & +0.147 & 2402 & FAIL \\
+5 & 5.5 & $-0.565$ & 4 & $-0.155$ & +0.147 & 2393 & FAIL \\
+6 & 6.0 & $-0.065$ & 4 & $-0.107$ & +0.148 & 2376 & FAIL \\
+7 & 6.5 & +0.435 & 0 & $-0.136$ & +0.141 & 2362 & FAIL \\
+8 & \textbf{7.0} & +0.935 & 0 & \textbf{+0.364} & +0.141 & 2362 & \textbf{PASS} \\
 \bottomrule
 \end{tabular}}
-\caption{All LibreLane runs. Setup slack = \texttt{setup\_\_ws}, the worst over all 9 signoff corners (always
-the slow corner \texttt{ss\_100C\_1v60}); tt slack = typical corner \texttt{nom\_tt\_025C\_1v80}.}
+\caption{All LibreLane runs. Final setup slack is \texttt{setup\_\_ws}, the worst over the 9 corners (always the slow
+corner). Every run has 0 DRC and 0 LVS errors, and the typical corner passes in every run (+0.587 ns at 3.5 ns).
+Per-run configs and metrics are in \texttt{results/PartD/attempts/}.}\label{tab:runs}
 \end{table}
 
-From 3.5 ns to 5.5 ns the slack improves by exactly 0.5 ns per step, as expected when only the period
-changes. At 6.0 ns and 6.5 ns it improves very little and even gets worse. The synthesised netlist was
-identical in all 8 runs, so the change comes from the place-and-route timing repair choosing a different
-critical path. The typical corner passed in every run; only the slow corner limited the period.
+\textbf{Why the slack changes unevenly.} During placement LibreLane checks timing with \emph{estimated} wire
+delays, and the timing-repair step only acts if that estimate shows a violation. The real wire delays are known
+only after routing. The synthesised logic (67 cells) is identical in every run, so the runs differ only in what
+the repair step does:
+\begin{itemize}[nosep]
+  \item \textbf{3.5--6.0 ns:} the slow-corner estimate is negative, so the repair step adds the same 4 cells every
+        time (3 \cell{buf\_4} re-buffers and 1 \cell{dlygate4sd3\_1} hold-delay cell). The layout is otherwise the
+        same, so up to 5.5 ns the final slack improves by exactly 0.5 ns per step; at 6.0 ns it ends at $-0.107$ ns.
+  \item \textbf{6.5 ns:} the estimate is already positive (+0.435 ns), so the repair step adds nothing. The real
+        routed wires turn out about 0.57 ns slower than estimated, so the final slack is $-0.136$ ns, slightly worse
+        than at 6.0 ns.
+  \item \textbf{7.0 ns:} the estimate (+0.935 ns) leaves enough room for the real wires, and the run passes with
+        +0.364 ns.
+\end{itemize}
 
 \subsection{Part D results}
 
@@ -564,9 +658,9 @@ Number of runs needed & 8 (3.5 $\rightarrow$ 7.0 ns in 0.5 ns steps) \\
 Core area (\umsq) & 17759.5 (die area 22500 = 150 $\times$ 150 \um) \\
 Cells after synthesis (from Part B) & 73 (16 flip-flops + 57 logic cells) \\
 Cells after place and route & 1895 instances (334 excluding decap/fill) \\
-Kinds of cells added & buffers $\times$22 (\cell{buf\_2}, \cell{clkdlybuf4s50\_1}, \cell{clkbuf\_16}),
-                       tap $\times$245 (\cell{tapvpwrvgnd\_1}), decap $\times$1314 (\cell{decap\_*}),
-                       fill $\times$247 (\cell{fill\_*}) \\
+Kinds of cells added & buffers $\times$22: \cell{buf\_2} $\times$17 (I/O ports), \cell{clkdlybuf4s50\_1} $\times$2 (reset fanout),
+                       \cell{clkbuf\_16} $\times$3 (clock tree); tap $\times$245 (\cell{tapvpwrvgnd\_1}); decap $\times$1314
+                       (\cell{decap\_*}); fill $\times$247 (\cell{fill\_*}) \\
 Wirelength (\um) & 2362 (552 vias) \\
 Setup slack (ns) & +0.364 (worst corner \texttt{max\_ss\_100C\_1v60}) \\
 Post-route $F_{max}$ (MHz) & 150.70 = 1000 / (7.0 $-$ 0.364) \\
@@ -605,9 +699,15 @@ ff, 1.95 V, $-40$ $^\circ$C & min & 4.735 & 0.141 & 441.6 \\
 
 The worst setup path is register-to-register (\texttt{timing\_\_setup\_r2r\_\_ws} = 0.364 ns), from
 \texttt{\_102\_} (\texttt{a\_reg[0]}) to \texttt{\_100\_} (D = \texttt{fa33.sum}, output \texttt{p[6]}): the
-same output bit as the Part C path. Setup clock skew is 0.26--0.28 ns at every corner. Other signoff
-numbers: 0 antenna violations, 0 max-slew / max-capacitance / max-fanout violations, 0 disconnected pins,
-worst IR drop 0.77 mV, total power 0.335 mW.
+same output bit as the Part C path. Other signoff results of the final run:
+\begin{itemize}[nosep]
+  \item The typical corner has 3.699 ns of setup slack to spare; only the slow corner is tight.
+  \item Hold slack is positive everywhere; it is smallest (+0.141 ns) at the fast corner, as expected.
+  \item Clock skew is 0.26--0.28 ns at every corner.
+  \item 0 antenna violations, 0 max-slew, max-capacitance and max-fanout violations, 0 disconnected pins.
+  \item The worst IR drop (voltage lost along the power rails) is 0.77 mV.
+  \item Total power at the typical corner is 0.287 mW.
+\end{itemize}
 
 \subsection{Post-route $F_{max}$ compared with Part C}
 
@@ -650,11 +750,12 @@ LibreLane cell-frequency report:
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}p{5.4cm}rY}
+\begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}p{4.3cm}rY}
 \toprule
 \textbf{Name contains} & \textbf{Cells} & \textbf{Count} & \textbf{Why the flow adds them} \\
 \midrule
-\texttt{buf} & \cell{buf\_2} $\times$17, \cell{clkdlybuf4s50\_1} $\times$2 & 19 & Timing repair: drive long nets and fix slew, setup and hold. \\
+\texttt{buf} & \cell{buf\_2} $\times$17 (\texttt{input1}--\texttt{9}, \texttt{output10}--\texttt{17}) & 17 & I/O port buffers: one on each of the 9 inputs (\texttt{rst\_n}, \texttt{a}, \texttt{b}) and 8 outputs (\texttt{p}); they isolate the core logic from unknown external drivers and loads. \\
+             & \cell{clkdlybuf4s50\_1} $\times$2 (\texttt{fanout18}, \texttt{fanout19}) & 2 & Fanout buffers: split the reset net, which drives all 16 flip-flops, into two branches (10 + 6) to meet slew and load limits. \\
              & \cell{clkbuf\_16} $\times$3 & 3 & Clock-tree synthesis: deliver the clock to the 16 flip-flops with low skew. \\
 \texttt{tap} & \cell{tapvpwrvgnd\_1} & 245 & Tie the n-well to VPWR and the substrate to VGND at regular intervals to prevent latch-up. \\
 \texttt{decap} & \cell{decap\_3} $\times$130, \cell{decap\_4} $\times$49, \cell{decap\_6} $\times$175, \cell{decap\_8} $\times$55, \cell{decap\_12} $\times$905 & 1314 & Decoupling capacitors between VPWR and VGND that reduce supply noise and IR drop. \\
@@ -706,91 +807,113 @@ and the routed wires.}
 \subsection*{Q1. The array needs 16 AND gates and 12 full adders. How many cells did synthesis produce for the logic? Explain why the number of cells is not simply 16 + 12.}
 \addcontentsline{toc}{subsection}{Q1. Logic cell count}
 
-Synthesis produced 73 cells, of which 16 are flip-flops, so the logic uses \textbf{57 cells}
-(405.39 \umsq) rather than 28. An ``AND gate'' and a ``full adder'' are RTL building blocks, not one library
-cell each. With \texttt{-flatten}, Yosys removes the \texttt{full\_adder} boundaries, and ABC re-implements
-the whole Boolean function with whichever SKY130 cells give a good area/delay result (Table~\ref{tab:cells}):
+Synthesis produced 73 cells. 16 of them are flip-flops, so the logic uses \textbf{57 cells} (405.39 \umsq),
+not 28. ``AND gate'' and ``full adder'' are blocks in our RTL, not single library cells. Because of
+\texttt{-flatten}, Yosys removes the \texttt{full\_adder} boundaries and ABC rebuilds the whole logic from
+whichever SKY130 cells give a good area and delay (Table~\ref{tab:cells}). The count changes for four reasons:
 \begin{itemize}[nosep]
-  \item \textbf{A full adder needs at least two cells.} Its sum becomes an XOR/XNOR cell (\cell{xnor2},
-        \cell{xnor3}, \cell{xor3}; 7 in total) and its carry a \cell{maj3} or an equivalent NAND/AOI network.
-        ABC cannot use the two-output SKY130 full-adder cell \cell{fa\_1} (the log reports ``Detected 9
-        multi-output cells''), so 12 full adders alone need about 24 or more cells.
-  \item \textbf{AND gates are merged into other logic.} Most partial-product ANDs are absorbed into compound
-        gates such as \cell{a21oi}, \cell{a21boi}, \cell{o2111a}, \cell{nand4}; only 6 remain as plain
-        \cell{and2/3/4} cells.
-  \item \textbf{Constant inputs simplify some adders.} Every row's carry-in and the top bit of $r_0$ are 0,
-        so those full adders reduce to half adders built from fewer, simpler gates.
+  \item \textbf{One full adder needs at least two cells.} Its sum becomes an XOR/XNOR cell (7 in total) and its
+        carry a \cell{maj3} cell or a small NAND/AND-OR network. ABC cannot use SKY130's two-output full-adder
+        cell \cell{fa\_1} (the log reports ``Detected 9 multi-output cells''), so 12 full adders alone need
+        about 24 cells or more.
+  \item \textbf{AND gates are merged into other cells.} Most partial-product ANDs disappear inside compound
+        gates such as \cell{a21oi}, \cell{a21boi}, \cell{o2111a} and \cell{nand4}; only 6 plain AND cells remain.
+  \item \textbf{Constant inputs make some adders simpler.} The first carry of every row and the top bit of $r_0$
+        are always 0, so those full adders shrink to half adders.
+  \item \textbf{A few inverting cells are needed} (\cell{clkinv}, \cell{nor2b}) to match signal polarities.
 \end{itemize}
-The exact count depends on the RTL style and the tool version (ABC is a heuristic), but it is always well
-above 28.
+The exact number also depends on how the RTL is written and on the tool version, because ABC is a heuristic.
+For example, writing the carry as \texttt{(a\&b)|(a\&cin)|(b\&cin)} instead of our
+\texttt{(a\&b)|(b\&cin)|(a\&cin)} (the same logic) gives 61 cells with the same tools. In every case the count
+is well above 28.
 
 \subsection*{Q2. What is the critical path of your design, from which register to which register? How many cells are on it, and how does this compare with the estimate of about 2N full-adder delays?}
 \addcontentsline{toc}{subsection}{Q2. Critical path}
 
-The critical path starts at the input register \texttt{b\_reg[0]} (\texttt{\_118\_}, \cell{dfrtp\_1}) and ends
-at the output register \texttt{p[6]} (\texttt{\_112\_}, \cell{dfrtp\_1}), whose D input is the sum of the last
-full adder FA[3,3]. It has \textbf{10 cells}: the launching flip-flop, 8 combinational cells
-(\cell{and2} $\rightarrow$ \cell{or3} $\rightarrow$ \cell{and4} $\rightarrow$ \cell{o2111a} $\rightarrow$
-\cell{o21ai} $\rightarrow$ \cell{xnor3} $\rightarrow$ \cell{maj3} $\rightarrow$ \cell{xor3}) and the capturing
-flip-flop. The data arrives at 2.460 ns, giving $T_{min}$ = 2.596 ns. The path follows the carry through the
-adder rows into product bit 6. For $N = 4$ the estimate is $2N = 8$ full-adder delays, which matches the 8
-combinational cells; 7 of them come from full-adder logic and the average delay is about 0.26 ns per cell.
+The critical path starts at the input register \texttt{b\_reg[0]} (\texttt{\_118\_}) and ends at the output
+register \texttt{p[6]} (\texttt{\_112\_}), whose input is the sum of the last full adder, FA[3,3]. It has
+\textbf{10 cells}: the launching flip-flop, 8 logic cells (\cell{and2} $\rightarrow$ \cell{or3} $\rightarrow$
+\cell{and4} $\rightarrow$ \cell{o2111a} $\rightarrow$ \cell{o21ai} $\rightarrow$ \cell{xnor3} $\rightarrow$
+\cell{maj3} $\rightarrow$ \cell{xor3}) and the capturing flip-flop. The data arrives after 2.460 ns, which gives
+$T_{min}$ = 2.596 ns.
+
+By matching every net with the RTL signals (Table~\ref{tab:critpath}), the path passes through \textbf{6 full adders}:
+FA[1,1] $\rightarrow$ FA[2,1] $\rightarrow$ FA[2,2] $\rightarrow$ FA[2,3] $\rightarrow$ FA[3,2] $\rightarrow$ FA[3,3].
+It follows the carry along row 1 and row 2 and then the sums and carries of rows 2 and 3 into $p[6]$. Seven of
+the 8 logic cells belong to these adders, at about 0.26 ns per cell. This agrees well with the estimate of about
+$2N = 8$ full-adder delays; each adder costs only one cell because the path uses either its carry or its sum,
+never both.
 
 \subsection*{Q3. What percentage of the total cell area is flip-flops? Why is this percentage large for such a small design?}
 \addcontentsline{toc}{subsection}{Q3. Flip-flop area}
 
-Flip-flops take 400.38 of 805.77 \umsq{} = \textbf{49.69 \%} of the cell area, although they are only 16 of the
-73 cells (22 \%). One \cell{dfrtp\_1} is 25.02 \umsq: 6.7 times a \cell{nand2\_1} (3.75 \umsq), about 3.5 times
-the average logic cell (7.1 \umsq), and larger than the biggest logic cell in the design (\cell{xor3\_1},
-23.77 \umsq). An edge-triggered flip-flop with asynchronous reset is two latches plus clock and reset
-circuitry, a few dozen transistors compared with 4 for a NAND2. The second reason is scaling: the array
-logic grows as $N^2$ (16 ANDs, 12 adders), while the registers grow only as $4N$ (16 flip-flops). At
-$N = 4$ the logic is still small, so the registers dominate; at 8 bits the flip-flop share falls to about
-32 \% (Q6).
+Flip-flops take 400.38 of 805.77 \umsq, which is \textbf{49.69 \%} of the cell area, even though they are only
+16 of the 73 cells (22 \%). There are two reasons:
+\begin{itemize}[nosep]
+  \item \textbf{A flip-flop is a big cell.} One \cell{dfrtp\_1} is 25.02 \umsq: 6.7 times a \cell{nand2\_1}
+        (3.75 \umsq), about 3.5 times the average logic cell (7.1 \umsq), and larger than any logic cell in the
+        design. A flip-flop with asynchronous reset contains two latches plus clock and reset circuitry, a few
+        dozen transistors compared with 4 for a NAND2.
+  \item \textbf{Scaling.} The array logic grows with $N^2$ (16 ANDs and 12 adders), but the registers grow only
+        with $4N$ (16 flip-flops). At $N = 4$ the logic is still small, so the registers dominate. At 8 bits the
+        flip-flop share drops to about 32 \% (Q6).
+\end{itemize}
 
 \subsection*{Q4. Why is the post-route F\textsubscript{max} lower than the F\textsubscript{max} from Part C? Which kinds of cells did the flow add, and why is each kind needed?}
 \addcontentsline{toc}{subsection}{Q4. Post-route Fmax and added cells}
 
-The post-route $F_{max}$ is 150.70 MHz against 385.21 MHz from Part C, about 2.6 times lower:
+The post-route $F_{max}$ is \textbf{150.70 MHz}, against 385.21 MHz from Part C, about 2.6 times lower. The two
+numbers are measured under very different conditions:
 \begin{enumerate}[nosep]
   \item \textbf{Corner.} Part C used only the typical library (tt, 1.80 V, 25 $^\circ$C). LibreLane signs off at
-        9 corners and reports the worst, the slow corner (ss, 1.60 V, 100 $^\circ$C, maximum wire RC). The same
-        layout allows 302.9 MHz at the typical corner, so the corner accounts for about a factor of 2.
-  \item \textbf{Real wires.} Part C had no parasitics. After routing, 2362 \um{} of wire and 552 vias add
-        resistance and capacitance; the logic delay on the critical path grows by 0.374 ns and CLK$\rightarrow$Q by 0.077 ns.
-  \item \textbf{Real clock.} Part C used an ideal clock. The routed design has a clock tree with skew and
-        LibreLane's 0.25 ns clock uncertainty, which reduce the time available for setup.
-  \item \textbf{Different netlist.} LibreLane re-synthesises the RTL with its own script, so the post-route
-        critical path (\texttt{a\_reg[0]} $\rightarrow$ \texttt{p[6]}, 9 logic cells) is not the same as in Part C.
+        9 corners and reports the worst one, the slow corner (ss, 1.60 V, 100 $^\circ$C), where cells are about
+        twice as slow. The same layout reaches 302.9 MHz at the typical corner, so the corner alone explains a
+        factor of about 2.
+  \item \textbf{Real wires.} Part C had no wire delay. After routing, 2362 \um{} of wire and 552 vias add
+        resistance and capacitance: on the critical path the logic delay grows by 0.374 ns and CLK$\rightarrow$Q
+        by 0.077 ns.
+  \item \textbf{Real clock.} Part C used an ideal clock. The real clock tree has insertion delay and 0.26--0.28 ns
+        of skew between flip-flops.
+  \item \textbf{Stricter constraints.} LibreLane adds 0.25 ns of clock uncertainty and a 5 \% timing derate to
+        every path. (Its input and output delays are also larger, 20 \% of the period = 1.4 ns, but these only
+        affect the I/O paths, not our register-to-register critical path.)
+  \item \textbf{Different netlist.} LibreLane re-synthesises the RTL with its own script (67 cells), so the
+        post-route critical path, \texttt{a\_reg[0]} $\rightarrow$ \texttt{p[6]} with 9 logic cells, is not the
+        same as in Part C.
 \end{enumerate}
-At the same (typical) corner these physical effects add 0.705 ns to the minimum period (Table~\ref{tab:fmaxbreak}).
+At the same typical corner, items 2--5 add 0.705 ns to the minimum period (Table~\ref{tab:fmaxbreak}).
 
 The flow added these cells (Table~\ref{tab:added}):
 \begin{itemize}[nosep]
-  \item \textbf{Buffers (22)}: \cell{buf\_2}, \cell{clkdlybuf4s50\_1} (timing repair: long nets, slew, setup,
-        hold) and \cell{clkbuf\_16} (clock tree: low-skew clock to the 16 flip-flops).
-  \item \textbf{Tap cells (245)}: bias the n-well and substrate to prevent latch-up.
-  \item \textbf{Decap cells (1314)}: on-chip supply decoupling against switching noise.
-  \item \textbf{Fill cells (247)}: keep the wells, implants and power rails continuous across row gaps so the
-        layout passes DRC.
+  \item \textbf{Buffers (22):} 17 \cell{buf\_2} I/O port buffers, one on each input and output pin, which
+        separate the core from outside drivers and loads; 2 \cell{clkdlybuf4s50\_1} fanout buffers, which split the
+        reset net that drives all 16 flip-flops; and 3 \cell{clkbuf\_16} clock-tree buffers, which deliver the
+        clock to the 16 flip-flops with low skew.
+  \item \textbf{Tap cells (245):} connect the n-well to VPWR and the substrate to VGND at regular spacing to
+        prevent latch-up.
+  \item \textbf{Decap cells (1314):} small capacitors between VPWR and VGND that reduce supply noise.
+  \item \textbf{Fill cells (247):} fill the gaps so that wells, implants and power rails stay continuous along
+        every row, which DRC requires.
 \end{itemize}
 
 \subsection*{Q5. What does a DRC check verify, and what does an LVS check verify? Why must both pass before a chip can be manufactured?}
 \addcontentsline{toc}{subsection}{Q5. DRC and LVS}
 
-\textbf{DRC} (design rule check) verifies the geometry of the layout against the foundry's rules for every
-layer: minimum widths, spacings, enclosures, overlaps, via rules, density and antenna ratios. These rules
-describe what the fab can print reliably; a violation can cause shorts, opens or very low yield.
+\textbf{DRC} (design rule check) checks the \emph{shapes} in the layout against the foundry's rules for every
+layer: minimum width and spacing, enclosure and overlap, via rules, metal density and antenna ratios. For
+example, two metal wires placed closer than the minimum spacing might short together when printed. The rules
+describe what the factory can make reliably, so a violation can cause shorts, open wires or very low yield.
 
-\textbf{LVS} (layout versus schematic) extracts the transistors and their connections from the layout and
-compares them with the intended netlist: the same devices, nets and pins. It confirms that the layout is
-the circuit we designed, with no missing connection, accidental short or swapped pin.
+\textbf{LVS} (layout versus schematic) checks the \emph{circuit}. It extracts the transistors and their
+connections from the layout and compares them with the netlist: the same devices, the same nets and the same
+pins. For example, a missing via or two nets accidentally touching would make the layout a different circuit
+from the one we designed.
 
-Each check covers what the other cannot. A layout can be manufacturable (DRC clean) but implement the wrong
-circuit, or be the right circuit (LVS clean) but impossible to fabricate. A mask set is very expensive and
-cannot be fixed after tape-out, so both must pass first. Our final run has 0 DRC errors in Magic and
-KLayout (the router's intermediate violations, 28 $\rightarrow$ 3 $\rightarrow$ 3 $\rightarrow$ 0, were all fixed),
-0 LVS errors in Netgen (``Circuits match uniquely'') and 0 antenna violations.
+Each check catches what the other cannot: a layout can follow every drawing rule but be the wrong circuit, or be
+the right circuit but impossible to manufacture. Masks are very expensive and a chip cannot be fixed after it is
+made, so both must pass first. Our final run has \textbf{0 DRC errors} in both Magic and KLayout (the router's
+intermediate violations, 28 $\rightarrow$ 3 $\rightarrow$ 3 $\rightarrow$ 0, were all fixed), \textbf{0 LVS errors}
+in Netgen (``Circuits match uniquely'') and 0 antenna violations.
 
 \subsection*{Q6. Using the formulas in Section 2, estimate how the number of full adders and the critical path delay would change if the multiplier were 8 bits wide instead of 4. Show your working.}
 \addcontentsline{toc}{subsection}{Q6. Scaling to 8 bits}
@@ -803,24 +926,47 @@ KLayout (the router's intermediate violations, 28 $\rightarrow$ 3 $\rightarrow$ 
 \midrule
 AND gates & $N^2$ & 16 & 64 & $\times 4$ \\
 Full adders & $N(N-1)$ & 12 & 56 & $\times 4.67$ \\
-Flip-flops & $2N + 2N$ & 16 & 32 & $\times 2$ \\
+Flip-flops & $4N$ & 16 & 32 & $\times 2$ \\
 Critical path & $\approx 2N$ full-adder delays & 8 & 16 & $\times 2$ \\
 \bottomrule
 \end{tabular}
 \caption{Scaling from 4 to 8 bits.}
 \end{table}
 
-\textbf{Working.} In Part C the 8 full-adder delays take 2.065 ns of logic, so one full-adder delay is about
-$2.065/8 \approx 0.258$ ns. The flip-flop overhead is 0.395 (CLK$\rightarrow$Q) + 0.135 (setup) = 0.530 ns.
-For $N = 8$:
+\textbf{Working.} From Part C, the logic on the critical path takes 2.065 ns, and the flip-flop overhead is
+0.395 ns (CLK$\rightarrow$Q) + 0.135 ns (setup) = 0.530 ns. The logic delay grows with the path length ($2N$),
+so it doubles from 4 to 8 bits, while the flip-flop overhead stays the same:
 \begin{align*}
-T_{min}(8\text{-bit}) &\approx 0.530 + 16 \times 0.258 = 0.530 + 4.13 \approx 4.66 \text{ ns}\\
-F_{max}(8\text{-bit}) &\approx 1000 / 4.66 \approx 215 \text{ MHz} \quad (\text{vs } 385 \text{ MHz for 4 bits; typical corner, pre-layout})
+T_{min}(8\text{-bit}) &\approx 0.530 + 2 \times 2.065 = 4.66 \text{ ns}, \qquad
+F_{max}(8\text{-bit}) \approx 1000 / 4.66 \approx 215 \text{ MHz}.
 \end{align*}
-The number of full adders grows about 4.7 times (quadratically in $N$), while the critical path grows only
-about 2 times in its logic part (linearly in $N$). $T_{min}$ rises from 2.60 ns to about 4.66 ns, 1.8 times,
-because the flip-flop overhead stays the same. For area, scaling the logic by the number of building blocks,
-$(64 + 56)/(16 + 12) \approx 4.3$ times 405 \umsq{} gives about 1740 \umsq; with 32 flip-flops
-(801 \umsq) the total is about 2540 \umsq{} and the flip-flop share falls to about 32 \%.
+As a cross-check with our measured path: for $N = 4$ it crosses 6 full adders ($2N - 2$), about 0.344 ns each.
+The same pattern gives 14 adders for $N = 8$, so $T_{min} \approx 0.530 + 14 \times 0.344 = 5.35$ ns
+(187 MHz). The 8-bit multiplier would therefore run at roughly \textbf{185--215 MHz} instead of 385 MHz
+(typical corner, before layout).
+
+So the number of full adders grows about 4.7 times (with $N^2$), but the critical path grows only about 2 times
+(with $N$), and $T_{min}$ rises less than 2 times (2.60 $\rightarrow$ 4.7--5.4 ns) because the flip-flop overhead
+does not change. For area, scaling the logic by the number of blocks, $(64 + 56)/(16 + 12) \approx 4.3$, gives
+about 1740 \umsq{} of logic; with 32 flip-flops (801 \umsq) the total is about 2540 \umsq{}, and the flip-flop share
+falls to about 32 \%.
+
+\section{Individual Contributions}
+
+The work was split equally between the two team members. Following the marking scheme of the assignment,
+each member was responsible for 50 of the 100 marks: Parts A and C (30 + 20 marks) for one member, and
+Parts B and D (20 + 30 marks) for the other.
+
+\textbf{Ande Karthik (2023102009)} designed and verified the RTL in Part A: the full adder, the array
+multiplier, the exhaustive self-checking testbench, the error-injection test, the hand-worked example and the
+waveform. He also performed the static timing analysis in Part C: he wrote \texttt{sta.tcl}, found $T_{min}$
+and $F_{max}$, and traced the critical path through the full-adder stages. He answered Q2 and Q6, kept the
+command log in the README up to date, and wrote and typeset this report.
+
+\textbf{Kalluri Roshan Lal (2023102010)} performed the logic synthesis in Part B: he wrote \texttt{synth.tcl},
+ran the gate-level simulation and analysed the cell usage and area. He also completed the physical design in
+Part D: \texttt{config.json}, the 8 LibreLane runs and the analysis of why their timing changed, the cells
+added by the flow, the DRC/LVS signoff and the layout screenshots. He drew the block diagram, answered Q1, Q3,
+Q4 and Q5, and reviewed the report and cross-checked its results.
 
 \end{document}
